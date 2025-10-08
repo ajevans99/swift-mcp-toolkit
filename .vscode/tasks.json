@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Playground",
+      "type": "shell",
+      "command": "swift",
+      "args": [
+        "run",
+        "--package-path",
+        ".",
+        "Playground"
+      ],
+      "options": {
+        "cwd": "."
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Playground",
+      "type": "shell",
+      "command": "swift",
+      "args": [
+        "build",
+        "--product",
+        "Playground"
+      ],
+      "options": {
+        "cwd": "."
+      },
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

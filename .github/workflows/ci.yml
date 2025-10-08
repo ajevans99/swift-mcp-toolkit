@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.platform }} / Swift ${{ matrix.swift }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux, macos, ios, watchos, tvos]
+        swift: ["6.0"]
+        include:
+          - platform: linux
+            os: ubuntu-latest
+          - platform: macos
+            os: macos-15
+          - platform: ios
+            os: macos-15
+          - platform: watchos
+            os: macos-15
+          - platform: tvos
+            os: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Not working https://github.com/swift-actions/setup-swift/issues/739
+      # - name: Set up Swift ${{ matrix.swift }}
+      #   if: matrix.platform != 'ios'
+      #   uses: swift-actions/setup-swift@v2
+      #   with:
+      #     swift-version: ${{ matrix.swift }}
+
+      - name: Cache SwiftPM (Linux/macOS)
+        if: matrix.platform == 'linux' || matrix.platform == 'macos'
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+            ~/.cache/org.swift.swiftpm
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-swiftpm-${{ matrix.swift }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-${{ matrix.swift }}-
+            ${{ runner.os }}-swiftpm-
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build (Linux/macOS)
+        if: matrix.platform != 'ios'
+        run: swift build -v
+
+      - name: Test (Linux/macOS)
+        if: matrix.platform != 'ios'
+        run: swift test -v
+
+      - name: Select Xcode (iOS/watchOS/tvOS)
+        if: matrix.platform == 'ios' || matrix.platform == 'watchos' || matrix.platform == 'tvos'
+        run: |
+          sudo xcode-select -s "/Applications/Xcode.app"
+          xcodebuild -version
+
+      - name: Cache Xcode SPM artifacts (iOS/watchOS/tvOS)
+        if: matrix.platform == 'ios' || matrix.platform == 'watchos' || matrix.platform == 'tvos'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/com.apple.dt.Xcode/Downloads
+            ~/.swiftpm
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-xcode-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-spm-
+            ${{ runner.os }}-xcode-
+
+      - name: Build on iOS Simulator
+        if: matrix.platform == 'ios'
+        run: |
+          set -o pipefail && xcodebuild \
+            -scheme spm-template-Package \
+            -destination generic/platform=${{ matrix.platform }} \
+            -skipPackagePluginValidation \
+            build | xcbeautify --renderer github-actions
+
+      - name: Build on watchOS/tvOS Simulator
+        if: matrix.platform == 'watchos' || matrix.platform == 'tvos'
+        run: |
+          set -o pipefail && xcodebuild \
+            -scheme spm-template-Package \
+            -destination generic/platform=${{ matrix.platform }} \
+            -skipPackagePluginValidation \
+            build | xcbeautify

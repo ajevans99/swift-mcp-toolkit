@@ -1,0 +1,132 @@
+name: Format
+
+on:
+  pull_request:
+    branches: ["main"]
+  pull_request_target:
+    types:
+      - labeled
+
+jobs:
+  format:
+    runs-on: macos-latest
+
+    permissions:
+      contents: write
+
+    name: Lint and format
+    steps:
+      - name: Checkout for internal PR
+        if: ${{ github.event.pull_request.head.repo.owner.login == github.repository_owner }}
+        uses: actions/checkout@v5
+
+      - name: Checkout for external PR (read-only)
+        if: ${{ github.event.pull_request.head.repo.owner.login != github.repository_owner }}
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: false
+
+      - name: Install swift-format
+        run: brew install swift-format
+
+      - name: Format (internal)
+        run: make format
+
+      - name: Check for formatting changes
+        id: check_changes
+        run: |
+          git diff --exit-code
+        continue-on-error: true
+
+      - name: Check if PR has a specific label
+        id: check_label
+        uses: actions/github-script@v8
+        with:
+          result-encoding: string
+          script: |
+            const labelToCheck = 'auto-format';
+            const prLabels = context.payload.pull_request.labels.map(label => label.name);
+            return prLabels.includes(labelToCheck);
+
+      - name: Apply auto-formatting (internal PR)
+        if: >
+          steps.check_changes.outcome == 'failure' &&
+          steps.check_label.outputs.result == 'true' &&
+          github.event.pull_request.head.repo.owner.login == github.repository_owner
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: Apply auto-formatting
+          token: ${{ secrets.PAT }}
+
+      - name: Apply auto-formatting (external PR via label)
+        if: >
+          steps.check_changes.outcome == 'failure' &&
+          steps.check_label.outputs.result == 'true' &&
+          github.event.pull_request.head.repo.owner.login != github.repository_owner &&
+          github.event_name == 'pull_request_target' &&
+          github.event.pull_request.maintainer_can_modify == true
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: Apply auto-formatting
+          token: ${{ secrets.PAT }}
+          branch: ${{ github.event.pull_request.head.ref }}
+
+      - name: Prepare patch artifact
+        if: >
+          steps.check_changes.outcome == 'failure'
+        run: |
+          git diff > formatting.patch || true
+
+      - name: Upload patch artifact
+        if: >
+          steps.check_changes.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatting-patch
+          path: formatting.patch
+
+      - name: Comment with patch info
+        if: >
+          steps.check_changes.outcome == 'failure'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = [
+              ':warning: Formatting issues detected.',
+              '',
+              'A patch named `formatting-patch` has been uploaded as a workflow artifact. You can download and apply it locally:',
+              '```bash',
+              'git apply formatting.patch',
+              '```',
+              '',
+              'Or run:',
+              '```bash',
+              'make format && make lint',
+              '```'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Fail if changes detected (optional)
+        if: >
+          steps.check_changes.outcome == 'failure' &&
+          (
+            steps.check_label.outputs.result == 'false' ||
+            (
+              github.event.pull_request.head.repo.owner.login != github.repository_owner &&
+              (github.event_name != 'pull_request_target' || github.event.pull_request.maintainer_can_modify != true)
+            )
+          )
+        run: |
+          echo "::error::Formatting issues detected. Please fix them."
+          echo "Run 'make format' locally to fix formatting."
+          exit 1
+
+      - name: Lint
+        run: make lint

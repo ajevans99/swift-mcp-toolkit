@@ -1,0 +1,19 @@
+{
+  // Global editor defaults
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Keep files tidy
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // Swift-specific overrides
+  "[swift]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.defaultFormatter": "swiftlang.swift-vscode"
+  }
+}
