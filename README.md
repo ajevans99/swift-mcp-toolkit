@@ -157,7 +157,7 @@ Then you can run the [example cli](./Example) with either stdio or HTTP transpor
 To run the example server with stdio transport, use:
 
 ```bash
-npx @modelcontextprotocol/inspector@latest swift run OpenAIAppsServer --transport stdio
+npx @modelcontextprotocol/inspector@latest swift run MCPToolkitExample --transport stdio
 ```
 
 This will start the server and connect it to MCP Inspector.
