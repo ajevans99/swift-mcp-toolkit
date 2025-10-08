@@ -89,7 +89,7 @@ jobs:
             -scheme swift-mcp-toolkit \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation -skipMacroValidation \
-            build
+            build | xcbeautify --renderer github-actions
 
       - name: Build on watchOS/tvOS Simulator
         if: matrix.platform == 'watchos' || matrix.platform == 'tvos'
@@ -98,7 +98,7 @@ jobs:
             -scheme swift-mcp-toolkit \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation -skipMacroValidation \
-            build
+            build | xcbeautify
 
   build-example:
     name: Build Example CLI
