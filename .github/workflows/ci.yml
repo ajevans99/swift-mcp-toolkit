@@ -86,7 +86,7 @@ jobs:
         if: matrix.platform == 'ios'
         run: |
           set -o pipefail && xcodebuild \
-            -scheme spm-template-Package \
+            -scheme swift-mcp-toolkit-Package \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation \
             build | xcbeautify --renderer github-actions
@@ -95,7 +95,31 @@ jobs:
         if: matrix.platform == 'watchos' || matrix.platform == 'tvos'
         run: |
           set -o pipefail && xcodebuild \
-            -scheme spm-template-Package \
+            -scheme swift-mcp-toolkit-Package \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation \
             build | xcbeautify
+
+  build-example:
+    name: Build Example CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+            ~/.cache/org.swift.swiftpm
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-
+            ${{ runner.os }}-swiftpm-
+
+      - name: Swift build
+        working-directory: Example
+        run: swift build -v

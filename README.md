@@ -1,44 +1,96 @@
-# spm-template
+# swift-mcp-toolkit
 
-[![CI](https://github.com/ajevans99/spm-template/actions/workflows/ci.yml/badge.svg)](https://github.com/ajevans99/spm-template/actions/workflows/ci.yml)
+[![CI](https://github.com/ajevans99/swift-mcp-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/ajevans99/swift-mcp-toolkit/actions/workflows/ci.yml)
+[![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)](https://swift.org)
 
-<!-- Add after SPI published
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fajevans99%2Fspm-template%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ajevans99/spm-template)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fajevans99%2Fspm-template%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ajevans99/spm-template) -->
+A toolkit built on top of the [official Swift SDK for Model Context Protocol server and clients](https://github.com/modelcontextprotocol/swift-sdk) that makes it easy to define strongly-typed tools.
 
-A minimal Swift Package template targeting Swift 6.0+ with modern Swift Testing, CI for Linux/macOS/iOS, SPI config, and swift-format.
+## Quick Start
 
-> [!TIP]
-> The [`app` branch](https://github.com/ajevans99/spm-template/tree/app) contains an Xcode project template in `AppTemplate/` for creating iOS/macOS apps that links against the package in `Sources/SPMTemplate/` and has CI to build apps.
+## Running the Example Server with MCP Inspector
 
-## Usage
+[MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive development tool for MCP servers.
 
-Add this package as a dependency, then:
+To install MCP Inspector, run:
 
-```swift
-import SPMTemplate
-
-let greeter = SPMTemplate()
-print(greeter.greet(name: "World"))
+```bash
+npm install -g @modelcontextprotocol/inspector
 ```
 
-## Development
+Then you can run the [example cli](./Example) with either stdio or HTTP transport modes.
 
-- Format code with `make format`
-- Lint with `make lint`
-- Run tests: `swift test`
+### Stdio
+
+To run the example server with stdio transport, use:
+
+```bash
+npx @modelcontextprotocol/inspector@latest swift run OpenAIAppsServer --transport stdio
+```
+
+This will start the server and connect it to MCP Inspector.
+
+### HTTP
+
+In HTTP mode, the CLI will spin up a [Vapor web server](https://vapor.codes) (on port 8080 by default) with MCP tools at `/mcp` endpoint.
+
+First start the Vapor server:
+
+```bash
+swift run MCPToolkitExample --transport http
+```
+
+Then in another terminal, start MCP Inspector and connect to the server:
+
+```bash
+npx @modelcontextprotocol/inspector@latest
+
+
+```
+
+## Documentation
+
+Full API documentation is available on Swift Package Index [here](https://swiftpackageindex.com/ajevans99.swift-mcp-toolkit).
+
+## Installation
+
+### Swift Package Manager
+
+Add `swift-mcp-toolkit` to your `Package.swift`:
+
+```swift
+dependencies: [
+  .package(url: "https://github.com/ajevans99/swift-mcp-toolkit.git", from: "1.0.0")
+]
+```
+
+Then add the dependency to your target:
+
+```swift
+.target(
+  name: "YourTarget",
+  dependencies: [
+    .product(name: "MCPToolkit", package: "swift-mcp-toolkit")
+  ]
+)
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT. See `LICENSE`.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
-## Template Renaming
+## Resources
 
-To quickly rename this template to your own package/target names:
+- [Model Context Protocol Specification](https://spec.modelcontextprotocol.io)
+- [MCP Official Documentation](https://modelcontextprotocol.io/docs)
+- [Example MCP Servers](https://github.com/modelcontextprotocol/servers)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 
-1. Open `.github/prompts/rename-swift-template.prompt.md`.
-2. Provide inputs:
-   - `oldName`: current module identifier (default: `SPMTemplate`)
-   - `newPackageName`: your package in kebab-case (e.g. `swift-my-library`)
-   - `newTargetName`: your primary module in PascalCase (e.g. `MyLibrary`)
-3. Run the prompt with your AI assistant.
+## Related Projects
+
+- [anthropic/mcp](https://github.com/anthropic/mcp) - Official MCP implementations
+- [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) - Example MCP servers

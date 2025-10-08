@@ -2,36 +2,36 @@
 import PackageDescription
 
 let package = Package(
-  name: "spm-template",
+  name: "swift-mcp-toolkit",
   defaultLocalization: "en",
   platforms: [
     .iOS(.v17),
-    .macOS(.v13),
+    .macOS(.v14),
     .tvOS(.v17),
     .watchOS(.v10),
   ],
   products: [
     .library(
-      name: "SPMTemplate",
-      targets: ["SPMTemplate"]
-    ),
-    .executable(
-      name: "Playground",
-      targets: ["Playground"]
-    ),
+      name: "MCPToolkit",
+      targets: ["MCPToolkit"]
+    )
   ],
-  dependencies: [],
+  dependencies: [
+    .package(url: "https://github.com/ajevans99/swift-json-schema.git", from: "0.9.0"),
+    .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.0"),
+  ],
   targets: [
     .target(
-      name: "SPMTemplate"
-    ),
-    .executableTarget(
-      name: "Playground",
-      dependencies: ["SPMTemplate"]
+      name: "MCPToolkit",
+      dependencies: [
+        .product(name: "JSONSchema", package: "swift-json-schema"),
+        .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+        .product(name: "MCP", package: "swift-sdk"),
+      ]
     ),
     .testTarget(
-      name: "SPMTemplateTests",
-      dependencies: ["SPMTemplate"]
+      name: "MCPToolkitTests",
+      dependencies: ["MCPToolkit"]
     ),
   ]
 )
