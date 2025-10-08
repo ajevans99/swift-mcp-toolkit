@@ -30,6 +30,8 @@ npx @modelcontextprotocol/inspector@latest swift run OpenAIAppsServer --transpor
 
 This will start the server and connect it to MCP Inspector.
 
+![MCP Inspector screenshot (STDIO mode)](./docs/images/mcp-inspector-stdio.png)
+
 ### HTTP
 
 In HTTP mode, the CLI will spin up a [Vapor web server](https://vapor.codes) (on port 8080 by default) with MCP tools at `/mcp` endpoint.
@@ -43,10 +45,10 @@ swift run MCPToolkitExample --transport http
 Then in another terminal, start MCP Inspector and connect to the server:
 
 ```bash
-npx @modelcontextprotocol/inspector@latest
-
-
+npx @modelcontextprotocol/inspector@latest --server-url http://127.0.0.1:8080/mcp --transport http
 ```
+
+![MCP Inspector screenshot (HTTP mode)](./docs/images/mcp-inspector-http.png)
 
 ## Documentation
 
