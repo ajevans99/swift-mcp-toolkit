@@ -184,7 +184,7 @@ npx @modelcontextprotocol/inspector@latest --server-url http://127.0.0.1:8080/mc
 
 ## Documentation
 
-Full API documentation is available on Swift Package Index [here](https://swiftpackageindex.com/ajevans99.swift-mcp-toolkit).
+Full API documentation is available on Swift Package Index [here](https://swiftpackageindex.com/ajevans99/swift-mcp-toolkit/main/documentation/mcptoolkit).
 
 ## Installation
 
