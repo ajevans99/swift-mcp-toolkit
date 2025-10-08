@@ -1,22 +1,21 @@
+import Foundation
 import MCP
 import Vapor
 
-private typealias HTTPRequest = Vapor.Request
-private typealias HTTPResponse = Vapor.Response
+typealias HTTPRequest = Vapor.Request
+typealias HTTPResponse = Vapor.Response
 
-/// A transport implementation that exposes the MCP server over Vapor's
-/// streaming HTTP facilities following the Streamable HTTP specification.
+/// Transport implementation that bridges the MCP `Transport` protocol to Vapor's
+/// Streamable HTTP facilities.
 public actor VaporStreamableHTTPTransport: Transport {
   public nonisolated let logger: Logger
-
-  private let app: Application
-  private let pathComponents: [PathComponent]
-  private let maxBodySize: ByteCount
 
   private let messageStream: AsyncThrowingStream<Data, Swift.Error>
   private let messageContinuation: AsyncThrowingStream<Data, Swift.Error>.Continuation
 
   private var isConnected = false
+  private var isClosed = false
+  private var pendingInboundMessages: [Data] = []
 
   private struct Connection {
     enum Kind {
@@ -33,54 +32,40 @@ public actor VaporStreamableHTTPTransport: Transport {
   private var connections: [UUID: Connection] = [:]
   private var idToConnection: [MessageID: UUID] = [:]
 
-  public init(
-    app: Application,
-    endpoint: String = "/mcp",
-    maxBodySize: ByteCount = "1mb",
-    logger: Logger? = nil
-  ) {
-    self.app = app
-    self.pathComponents = VaporStreamableHTTPTransport.makePathComponents(from: endpoint)
-    self.maxBodySize = maxBodySize
-    self.logger = logger ?? Logger(label: "mcptoolkit.transport.streamable-http")
+  /// Creates a transport that can service Vapor HTTP handlers.
+  /// - Parameter logger: Optional logger used for transport diagnostics.
+  public init(logger: Logger? = nil) {
+    self.logger = logger ?? Logger(label: "mcp.transport.vapor")
 
     var continuation: AsyncThrowingStream<Data, Swift.Error>.Continuation!
     self.messageStream = AsyncThrowingStream { continuation = $0 }
     self.messageContinuation = continuation
-
-    let components = self.pathComponents
-    let maxSize = self.maxBodySize
-    let transport = self
-
-    app.on(.POST, components, body: .collect(maxSize: maxSize)) {
-      [weak transport] request async throws -> HTTPResponse in
-      app.logger.info("Test log from within VaporStreamableHTTPTransport")
-      guard let transport else {
-        throw Abort(.internalServerError, reason: "Transport no longer available")
-      }
-      return try await transport.handlePost(request)
-    }
-
-    app.on(.GET, components) { [weak transport] request async throws -> HTTPResponse in
-      guard let transport else {
-        throw Abort(.internalServerError, reason: "Transport no longer available")
-      }
-      return try await transport.handleGet(request)
-    }
   }
 
   public func connect() async throws {
+    guard !isClosed else {
+      throw MCPError.connectionClosed
+    }
     guard !isConnected else { return }
+
     isConnected = true
-    logger.info("Vapor streamable HTTP transport connected")
+    logger.debug("Vapor streamable HTTP transport connected")
+
+    if !pendingInboundMessages.isEmpty {
+      pendingInboundMessages.forEach { messageContinuation.yield($0) }
+      pendingInboundMessages.removeAll(keepingCapacity: false)
+    }
   }
 
   public func disconnect() async {
-    guard isConnected else { return }
+    guard !isClosed else { return }
+    isClosed = true
     isConnected = false
+    pendingInboundMessages.removeAll(keepingCapacity: false)
+
     messageContinuation.finish()
     await closeAllConnections()
-    logger.info("Vapor streamable HTTP transport disconnected")
+    logger.debug("Vapor streamable HTTP transport disconnected")
   }
 
   public func receive() -> AsyncThrowingStream<Data, Swift.Error> {
@@ -88,7 +73,7 @@ public actor VaporStreamableHTTPTransport: Transport {
   }
 
   public func send(_ data: Data) async throws {
-    guard isConnected else {
+    guard !isClosed else {
       throw MCPError.connectionClosed
     }
 
@@ -98,7 +83,10 @@ public actor VaporStreamableHTTPTransport: Transport {
 
   // MARK: - Incoming HTTP handlers
 
-  private func handlePost(_ req: HTTPRequest) async throws -> HTTPResponse {
+  /// Handles a Streamable HTTP `POST` request by forwarding the payload into the MCP server.
+  /// - Parameter req: Incoming Vapor request.
+  /// - Returns: A streaming response when the payload contains requests needing replies, otherwise `202 Accepted`.
+  func handlePost(_ req: HTTPRequest) async throws -> HTTPResponse {
     guard
       var body = req.body.data,
       let raw = body.readData(length: body.readableBytes)
@@ -109,27 +97,35 @@ public actor VaporStreamableHTTPTransport: Transport {
     let envelopes = try JSONRPCEnvelope.parse(data: raw)
     let requestIDs = envelopes.requestIdentifiers
 
+    let response: HTTPResponse
     if !requestIDs.isEmpty {
-      let response = await openRequestStream(for: requestIDs)
-      try await forwardToServer(raw)
-      return response
+      response = await openRequestStream(for: requestIDs)
+    } else {
+      response = HTTPResponse(status: .accepted)
     }
 
-    try await forwardToServer(raw)
-    return HTTPResponse(status: .accepted)
+    try enqueueInboundMessage(raw)
+    return response
   }
 
-  private func handleGet(_ req: HTTPRequest) async throws -> HTTPResponse {
-    return await openOutboundStream()
+  /// Handles a Streamable HTTP `GET` request by opening an SSE channel for outbound server messages.
+  /// - Returns: A streaming response that delivers server-originated JSON-RPC payloads.
+  func handleGet(_ req: HTTPRequest) async -> HTTPResponse {
+    await openOutboundStream()
   }
 
   // MARK: - Helpers
 
-  private func forwardToServer(_ data: Data) async throws {
-    guard isConnected else {
+  private func enqueueInboundMessage(_ data: Data) throws {
+    if isClosed {
       throw MCPError.connectionClosed
     }
-    messageContinuation.yield(data)
+
+    if isConnected {
+      messageContinuation.yield(data)
+    } else {
+      pendingInboundMessages.append(data)
+    }
   }
 
   private func openRequestStream(for ids: Set<MessageID>) async -> HTTPResponse {
@@ -295,10 +291,6 @@ public actor VaporStreamableHTTPTransport: Transport {
       return nil
     }
   }
-
-  private static func makePathComponents(from endpoint: String) -> [PathComponent] {
-    endpoint.split(separator: "/").filter { !$0.isEmpty }.map { .constant(String($0)) }
-  }
 }
 
 private struct JSONRPCEnvelope {
@@ -327,6 +319,7 @@ private struct JSONRPCEnvelope {
 
     return array.compactMap { makeEnvelope(object: $0) }
   }
+
   private static func makeEnvelope(object: [String: Any]) -> JSONRPCEnvelope? {
     if object["method"] != nil {
       if let idValue = object["id"], let identifier = MessageID(json: idValue) {
