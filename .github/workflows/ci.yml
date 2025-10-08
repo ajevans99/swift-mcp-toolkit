@@ -86,7 +86,7 @@ jobs:
         if: matrix.platform == 'ios'
         run: |
           set -o pipefail && xcodebuild \
-            -scheme swift-mcp-toolkit-Package \
+            -scheme swift-mcp-toolkit \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation \
             build | xcbeautify --renderer github-actions
@@ -95,7 +95,7 @@ jobs:
         if: matrix.platform == 'watchos' || matrix.platform == 'tvos'
         run: |
           set -o pipefail && xcodebuild \
-            -scheme swift-mcp-toolkit-Package \
+            -scheme swift-mcp-toolkit \
             -destination generic/platform=${{ matrix.platform }} \
             -skipPackagePluginValidation \
             build | xcbeautify
