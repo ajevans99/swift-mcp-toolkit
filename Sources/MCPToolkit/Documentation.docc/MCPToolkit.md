@@ -7,7 +7,7 @@ Build Model Context Protocol (MCP) tools in Swift using structured concurrency, 
 The MCP specification standardises how AI assistants discover and invoke server-side tools. This package focuses on the tooling surface that server authors most frequently implement:
 
 - `MCPTool` defines a strongly typed contract between your Swift code and `tools/call` requests.
-- `Server/register(tools:)` wires those tools into the SDK's `Server` actor so clients can list and execute them.
+- `Server/register(tools:messaging:)` wires those tools into the SDK's `Server` actor so clients can list and execute them, while exposing hooks for customising toolkit-managed responses.
 - `MCPTool/call(arguments:)` bridges raw MCP arguments into validated Swift values using `JSONSchemaBuilder`.
 
 ### Why MCPToolkit?
@@ -38,7 +38,7 @@ The MCP specification standardises how AI assistants discover and invoke server-
    }
    ```
 
-2. **Register Tools** on your `Server`:
+2. **Register Tools** on your `Server` and optionally tailor messaging:
 
    ```swift
    let server = Server(
@@ -47,7 +47,19 @@ The MCP specification standardises how AI assistants discover and invoke server-
      capabilities: .init(tools: .init(listChanged: true))
    )
 
-   await server.register(tools: [WeatherTool()])
+   await server.register(
+     tools: [WeatherTool()],
+     messaging: ResponseMessagingFactory.defaultWithOverrides { overrides in
+       overrides.toolThrew = { context in
+         CallTool.Result(
+           content: [
+             .text("Weather machine failure: \(context.error.localizedDescription)")
+           ],
+           isError: true
+         )
+       }
+     }
+   )
    ```
 
 3. **Respond to Clients** – incoming `tools/call` requests are parsed, validated, and routed without additional glue code.
@@ -59,4 +71,7 @@ The MCP specification standardises how AI assistants discover and invoke server-
 - `MCPTool`
 - `MCPTool/call(arguments:)`
 - `MCPTool/toTool()`
-- `Server/register(tools:)`
+- `Server/register(tools:messaging:)`
+- ``ResponseMessaging``
+- ``DefaultResponseMessaging``
+- ``ResponseMessagingFactory``

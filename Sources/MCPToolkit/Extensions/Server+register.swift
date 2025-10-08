@@ -9,36 +9,39 @@ extension Server {
   /// [swift-sdk README](https://github.com/modelcontextprotocol/swift-sdk) while removing the
   /// boilerplate for JSON parsing, validation, and error reporting.
   ///
-  /// - Parameter tools: The collection of tools that should be surfaced to MCP clients.
+  /// - Parameters:
+  ///   - tools: The collection of tools that should be surfaced to MCP clients.
+  ///   - messaging: The response messaging provider responsible for formatting toolkit-managed
+  ///     responses. Defaults to ``DefaultResponseMessaging`` to match the previous behaviour.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
-  public func register(tools: [any MCPTool]) async {
+  public func register<M: ResponseMessaging>(
+    tools: [any MCPTool],
+    messaging: M = DefaultResponseMessaging()
+  ) async {
     self.withMethodHandler(ListTools.self) { _ in
       .init(tools: tools.map { $0.toTool() })
     }
 
     self.withMethodHandler(CallTool.self) { params async in
       guard let tool = tools.first(where: { $0.name == params.name }) else {
-        return .init(
-          content: [.text("Unknown tool: \(params.name)")],
-          isError: true
+        return messaging.unknownTool(
+          .init(requestedName: params.name)
         )
       }
 
       if let arguments = params.arguments {
         do {
-          let result = try await tool.call(arguments: arguments)
+          let result = try await tool.call(arguments: arguments, messaging: messaging)
           return result
         } catch {
-          return .init(
-            content: [.text("Error occurred while calling tool \(params.name): \(error)")],
-            isError: true
+          return messaging.toolThrew(
+            .init(toolName: tool.name, error: error)
           )
         }
       }
 
-      return .init(
-        content: [.text("Missing arguments for tool \(params.name)")],
-        isError: true
+      return messaging.missingArguments(
+        .init(toolName: tool.name)
       )
     }
   }
