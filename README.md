@@ -8,6 +8,62 @@ A toolkit built on top of the [official Swift SDK for Model Context Protocol ser
 
 ## Quick Start
 
+### Step 1: Define a Tool
+
+Conform to `MCPTool`, describe your parameters using the JSONSchemaBuilder or @Schemable from [`swift-json-schema`](https://github.com/ajevans99/swift-json-schema), and implement the `call(with:)` method.
+
+```swift
+struct WeatherTool: MCPTool {
+  let name = "weather"
+  let description: String? = "Return the weather for a location"
+
+  @Schemable
+  enum Unit {
+    case fahrenheit
+    case celsius
+  }
+
+  @Schemable
+  @ObjectOptions(.additionalProperties { false })
+  struct Parameters {
+    /// Location as city, like "Detroit" or "New York"
+    let location: String
+
+    /// Unit for temperature
+    let unit: Unit
+  }
+
+  func call(with arguments: Parameters) async throws -> CallTool.Result {
+    let weather: String
+
+    switch arguments.unit {
+    case .fahrenheit:
+      weather = "The weather in \(arguments.location) is 75°F and sunny."
+    case .celsius:
+      weather = "The weather in \(arguments.location) is 24°C and sunny."
+    }
+
+    return .init(content: [.text(weather)])
+  }
+}
+```
+
+### Step 2: Register the Tool with a MCP Server
+
+Create the same `Server` instance you would when using the `swift-sdk`, then call `register(tools:)` with your tool instance(s).
+
+```swift
+import MCPToolkit
+
+let server = Server(
+  name: "Weather Station",
+  version: "1.0.0",
+  capabilities: .init(tools: .init(listChanged: true))
+)
+
+await server.register(tools: [WeatherTool()])
+```
+
 ## Running the Example Server with MCP Inspector
 
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive development tool for MCP servers.
@@ -62,7 +118,7 @@ Add `swift-mcp-toolkit` to your `Package.swift`:
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/ajevans99/swift-mcp-toolkit.git", from: "1.0.0")
+  .package(url: "https://github.com/ajevans99/swift-mcp-toolkit.git", from: "0.1.0")
 ]
 ```
 
@@ -87,12 +143,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Resources
 
-- [Model Context Protocol Specification](https://spec.modelcontextprotocol.io)
 - [MCP Official Documentation](https://modelcontextprotocol.io/docs)
 - [Example MCP Servers](https://github.com/modelcontextprotocol/servers)
-- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-
-## Related Projects
-
-- [anthropic/mcp](https://github.com/anthropic/mcp) - Official MCP implementations
-- [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) - Example MCP servers
+- [Swift SDK - MCP](https://github.com/modelcontextprotocol/swift-sdk)
+- [Swift JSON Schema](https://github.com/ajevans99/swift-json-schema)

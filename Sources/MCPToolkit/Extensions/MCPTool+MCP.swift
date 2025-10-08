@@ -4,6 +4,21 @@ import JSONSchemaBuilder
 import MCP
 
 extension MCPTool {
+  /// Converts raw MCP argument values into the strongly typed ``MCPTool/Parameters`` payload.
+  ///
+  /// This helper is invoked by the `Server.register(tools:)` integration to:
+  /// 1. Transform the `[String: MCP.Value]` arguments from `swift-sdk` into ``JSONValue``.
+  /// 2. Parse and validate them against the tool's declared schema.
+  /// 3. Forward the confirmed payload into ``MCPTool/call(with:)``.
+  ///
+  /// Any parsing or validation problems are wrapped in a `CallTool.Result` containing
+  /// [`Tool.Content.text`](https://github.com/modelcontextprotocol/swift-sdk/blob/main/Sources/MCP/Server/Tools.swift),
+  /// matching the expectations laid out in the MCP "Calling Tools" spec.
+  ///
+  /// - Parameter arguments: The raw JSON-like dictionary the MCP client provided.
+  /// - Returns: Either a successful tool result or an error response describing validation issues.
+  /// - Throws: Rethrows errors produced by ``MCPTool/call(with:)``.
+  /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools
   public func call(arguments: [String: MCP.Value]) async throws -> CallTool.Result {
     let object = arguments.mapValues { JSONValue(value: $0) }
     let params: Parameters
@@ -48,6 +63,10 @@ extension MCPTool {
 }
 
 extension MCPTool {
+  /// Creates the `swift-sdk` representation of the tool for `tools/list` responses.
+  ///
+  /// - Returns: A configured ``MCP/Tool`` populated with the tool's metadata and JSON Schema.
+  /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools
   public func toTool() -> Tool {
     Tool(
       name: name,
