@@ -127,8 +127,7 @@ struct VanillaWeatherTool {
 ### Step 2: Register the Tool with a MCP Server
 
 Create the same `Server` instance you would when using the `swift-sdk`, then call `register(tools:)` with your tool instance(s).
-The optional `messaging:` parameter lets you customise every toolkit-managed response if you
-want to adjust tone, add metadata, or localise error messages.
+The optional `messaging:` parameter lets you customise every toolkit-managed response if you want to adjust tone, add metadata, or localise error messages.
 
 ```swift
 import MCPToolkit
