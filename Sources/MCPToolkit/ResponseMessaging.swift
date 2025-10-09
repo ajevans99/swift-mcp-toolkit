@@ -15,7 +15,7 @@ public protocol ResponseMessaging: Sendable {
   func unexpectedError(_ context: ResponseMessagingUnexpectedErrorContext) -> CallTool.Result
 }
 
-/// Provides the default set of toolkit responses mirroring the previous hard-coded strings.
+/// Provides the default set of toolkit responses
 public struct DefaultResponseMessaging: ResponseMessaging {
   public init() {}
 

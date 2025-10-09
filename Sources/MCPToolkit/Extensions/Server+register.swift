@@ -12,7 +12,7 @@ extension Server {
   /// - Parameters:
   ///   - tools: The collection of tools that should be surfaced to MCP clients.
   ///   - messaging: The response messaging provider responsible for formatting toolkit-managed
-  ///     responses. Defaults to ``DefaultResponseMessaging`` to match the previous behaviour.
+  ///     responses. Defaults to ``DefaultResponseMessaging``.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
   public func register<M: ResponseMessaging>(
     tools: [any MCPTool],
