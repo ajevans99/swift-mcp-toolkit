@@ -1,4 +1,3 @@
-import Foundation
 import JSONSchema
 import JSONSchemaBuilder
 import MCP
@@ -11,51 +10,44 @@ extension MCPTool {
   /// 2. Parse and validate them against the tool's declared schema.
   /// 3. Forward the confirmed payload into ``MCPTool/call(with:)``.
   ///
-  /// Any parsing or validation problems are wrapped in a `CallTool.Result` containing
-  /// [`Tool.Content.text`](https://github.com/modelcontextprotocol/swift-sdk/blob/main/Sources/MCP/Server/Tools.swift),
-  /// matching the expectations laid out in the MCP "Calling Tools" spec.
+  /// Any parsing or validation problems are routed through the provided ``ResponseMessaging``
+  /// implementation, allowing callers to customize every surface returned to the model.
   ///
-  /// - Parameter arguments: The raw JSON-like dictionary the MCP client provided.
+  /// - Parameters:
+  ///   - arguments: The raw JSON-like dictionary the MCP client provided.
+  ///   - messaging: The response messaging provider that should format any failures. Defaults to
+  ///     ``DefaultResponseMessaging`` to preserve the toolkit's existing behaviour.
   /// - Returns: Either a successful tool result or an error response describing validation issues.
   /// - Throws: Rethrows errors produced by ``MCPTool/call(with:)``.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools
-  public func call(arguments: [String: MCP.Value]) async throws -> CallTool.Result {
+  public func call<M: ResponseMessaging>(
+    arguments: [String: MCP.Value],
+    messaging: M = DefaultResponseMessaging()
+  ) async throws -> CallTool.Result {
     let object = arguments.mapValues { JSONValue(value: $0) }
     let params: Parameters
     do {
       params = try parameters.parseAndValidate(.object(object))
     } catch ParseAndValidateIssue.parsingFailed(let parseIssues) {
-      return .init(
-        content: [.text("Failed to parse arguments for tool \(name): \(parseIssues.description)")],
-        isError: true
+      return messaging.parsingFailed(
+        .init(toolName: name, issues: parseIssues)
       )
     } catch ParseAndValidateIssue.validationFailed(let validationResult) {
-      return .init(
-        content: [
-          .text(
-            "Arguments for tool \(name) failed validation: \(validationResult.prettyJSONString())"
-          )
-        ],
-        isError: true
+      return messaging.validationFailed(
+        .init(toolName: name, result: validationResult)
       )
     } catch ParseAndValidateIssue.parsingAndValidationFailed(let parseErrors, let validationResult)
     {
-      return .init(
-        content: [
-          .text(
-            "Arguments for tool \(name) failed parsing and validation. Parsing errors: \(parseErrors.description). Validation errors: \(validationResult.prettyJSONString())"
-          )
-        ],
-        isError: true
+      return messaging.parsingAndValidationFailed(
+        .init(
+          toolName: name,
+          parseIssues: parseErrors,
+          validationResult: validationResult
+        )
       )
     } catch {
-      return .init(
-        content: [
-          .text(
-            "Unexpected error occurred while parsing/validating arguments for tool \(name): \(error)"
-          )
-        ],
-        isError: true
+      return messaging.unexpectedError(
+        .init(toolName: name, error: error)
       )
     }
     return try await call(with: params)
@@ -74,24 +66,5 @@ extension MCPTool {
       inputSchema: .init(schemaValue: parameters.schemaValue),
       annotations: annotations
     )
-  }
-}
-
-// MARK: - Error Printing
-
-extension Array where Element == ParseIssue {
-  fileprivate var description: String {
-    self.map(\.description).joined(separator: "; ")
-  }
-}
-
-extension ValidationResult {
-  fileprivate func prettyJSONString() -> String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    guard let data = try? encoder.encode(self) else {
-      return #"{"error": "failed to encode ValidationResult"}"#
-    }
-    return String(data: data, encoding: .utf8) ?? #"{"error": "utf8 conversion failed"}"#
   }
 }

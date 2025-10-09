@@ -86,6 +86,7 @@ public actor VaporStreamableHTTPTransport: Transport {
   /// Handles a Streamable HTTP `POST` request by forwarding the payload into the MCP server.
   /// - Parameter req: Incoming Vapor request.
   /// - Returns: A streaming response when the payload contains requests needing replies, otherwise `202 Accepted`.
+  /// - Throws: ``Abort`` errors for malformed requests or decoding failures propagated from ``JSONRPCEnvelope`` parsing.
   func handlePost(_ req: HTTPRequest) async throws -> HTTPResponse {
     guard
       var body = req.body.data,

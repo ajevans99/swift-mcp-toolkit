@@ -127,6 +127,7 @@ struct VanillaWeatherTool {
 ### Step 2: Register the Tool with a MCP Server
 
 Create the same `Server` instance you would when using the `swift-sdk`, then call `register(tools:)` with your tool instance(s).
+The optional `messaging:` parameter lets you customise every toolkit-managed response if you want to adjust tone, add metadata, or localise error messages.
 
 ```swift
 import MCPToolkit
@@ -137,8 +138,22 @@ let server = Server(
   capabilities: .init(tools: .init(listChanged: true))
 )
 
-await server.register(tools: [WeatherTool()])
+await server.register(
+  tools: [WeatherTool()],
+  messaging: ResponseMessagingFactory.defaultWithOverrides { overrides in
+    overrides.toolThrew = { context in
+      CallTool.Result(
+        content: [
+          .text("Weather machine failure: \(context.error.localizedDescription)")
+        ],
+        isError: true
+      )
+    }
+  }
+)
 ```
+
+If you are happy with the toolkit's defaults, simply omit the `messaging:` argument.
 
 ## Running the Example Server with MCP Inspector
 
