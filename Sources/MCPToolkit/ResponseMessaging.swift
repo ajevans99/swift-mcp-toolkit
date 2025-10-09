@@ -155,9 +155,10 @@ private struct ClosureResponseMessaging: ResponseMessaging {
     toolThrew: @escaping Handler<ResponseMessagingToolErrorContext>,
     parsingFailed: @escaping Handler<ResponseMessagingParsingFailedContext>,
     validationFailed: @escaping Handler<ResponseMessagingValidationFailedContext>,
-    parsingAndValidationFailed: @escaping Handler<
-      ResponseMessagingParsingAndValidationFailedContext
-    >,
+    parsingAndValidationFailed:
+      @escaping Handler<
+        ResponseMessagingParsingAndValidationFailedContext
+      >,
     unexpectedError: @escaping Handler<ResponseMessagingUnexpectedErrorContext>
   ) {
     self.unknownToolHandler = unknownTool
