@@ -18,7 +18,8 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/ajevans99/swift-json-schema.git", from: "0.9.0"),
-    .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.0"),
+    // The swift-sdk fork with OpenAI tweaks, like _meta on Tools.
+    .package(url: "https://github.com/ajevans99/swift-sdk.git", branch: "main"),
   ],
   targets: [
     .target(

@@ -64,7 +64,8 @@ extension MCPTool {
       name: name,
       description: description,
       inputSchema: .init(schemaValue: parameters.schemaValue),
-      annotations: annotations
+      annotations: annotations,
+      meta: meta?.mapValues { MCP.Value(value: $0) }
     )
   }
 }

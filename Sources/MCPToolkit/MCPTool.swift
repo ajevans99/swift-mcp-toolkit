@@ -37,6 +37,8 @@ public protocol MCPTool: Sendable {
   var description: String? { get }
   /// Additional metadata that MCP clients may use when prioritising tools.
   var annotations: Tool.Annotations { get }
+  /// Arbitrary metadata, useful for OpenAI tooling.
+  var meta: [String: JSONValue]? { get }
 
   /// The JSON Schema definition that is published through `tools/list`.
   @JSONSchemaBuilder
@@ -131,6 +133,11 @@ extension MCPTool {
 
   /// Default implementation that emits no annotations.
   public var annotations: Tool.Annotations {
+    nil
+  }
+
+  /// Default implementation that emits no metadata.
+  public var meta: [String: JSONValue]? {
     nil
   }
 }
