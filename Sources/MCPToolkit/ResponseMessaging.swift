@@ -13,6 +13,9 @@ public protocol ResponseMessaging: Sendable {
     _ context: ResponseMessagingParsingAndValidationFailedContext
   ) -> CallTool.Result
   func unexpectedError(_ context: ResponseMessagingUnexpectedErrorContext) -> CallTool.Result
+  func structuredOutputInvalid(
+    _ context: ResponseMessagingStructuredOutputInvalidContext
+  ) -> CallTool.Result
 }
 
 /// Provides the default set of toolkit responses
@@ -96,6 +99,35 @@ public struct DefaultResponseMessaging: ResponseMessaging {
       isError: true
     )
   }
+
+  public func structuredOutputInvalid(
+    _ context: ResponseMessagingStructuredOutputInvalidContext
+  ) -> CallTool.Result {
+    let message: String
+    switch context.issue {
+    case .decodingFailed(let error):
+      message =
+        "Failed to decode structured output for tool \(context.toolName): \(error.localizedDescription)"
+    case .parsingFailed(let issues):
+      let joined = issues.map(\.description).joined(separator: "; ")
+      message =
+        "Structured output for tool \(context.toolName) failed parsing: \(joined)"
+    case .validationFailed(let validationResult):
+      message =
+        "Structured output for tool \(context.toolName) failed validation: \(validationResult.prettyJSONString())"
+    case .parsingAndValidationFailed(let parseIssues, let validationResult):
+      let joined = parseIssues.map(\.description).joined(separator: "; ")
+      message =
+        """
+        Structured output for tool \(context.toolName) failed parsing and validation. Parsing errors: \(joined). Validation errors: \(validationResult.prettyJSONString())
+        """
+    }
+
+    return .init(
+      content: [.text(message)],
+      isError: true
+    )
+  }
 }
 
 /// A convenience factory that allows callers to override a subset of messaging behaviours.
@@ -112,6 +144,8 @@ public enum ResponseMessagingFactory {
     public var parsingAndValidationFailed:
       Handler<ResponseMessagingParsingAndValidationFailedContext>?
     public var unexpectedError: Handler<ResponseMessagingUnexpectedErrorContext>?
+    public var structuredOutputInvalid:
+      Handler<ResponseMessagingStructuredOutputInvalidContext>?
 
     public init() {}
   }
@@ -133,7 +167,9 @@ public enum ResponseMessagingFactory {
       validationFailed: overrides.validationFailed ?? base.validationFailed,
       parsingAndValidationFailed: overrides.parsingAndValidationFailed
         ?? base.parsingAndValidationFailed,
-      unexpectedError: overrides.unexpectedError ?? base.unexpectedError
+      unexpectedError: overrides.unexpectedError ?? base.unexpectedError,
+      structuredOutputInvalid:
+        overrides.structuredOutputInvalid ?? base.structuredOutputInvalid
     )
   }
 }
@@ -148,6 +184,7 @@ private struct ClosureResponseMessaging: ResponseMessaging {
   let validationFailedHandler: Handler<ResponseMessagingValidationFailedContext>
   let parsingAndValidationFailedHandler: Handler<ResponseMessagingParsingAndValidationFailedContext>
   let unexpectedErrorHandler: Handler<ResponseMessagingUnexpectedErrorContext>
+  let structuredOutputInvalidHandler: Handler<ResponseMessagingStructuredOutputInvalidContext>
 
   init(
     unknownTool: @escaping Handler<ResponseMessagingUnknownToolContext>,
@@ -159,7 +196,9 @@ private struct ClosureResponseMessaging: ResponseMessaging {
       @escaping Handler<
         ResponseMessagingParsingAndValidationFailedContext
       >,
-    unexpectedError: @escaping Handler<ResponseMessagingUnexpectedErrorContext>
+    unexpectedError: @escaping Handler<ResponseMessagingUnexpectedErrorContext>,
+    structuredOutputInvalid:
+      @escaping Handler<ResponseMessagingStructuredOutputInvalidContext>
   ) {
     self.unknownToolHandler = unknownTool
     self.missingArgumentsHandler = missingArguments
@@ -168,6 +207,7 @@ private struct ClosureResponseMessaging: ResponseMessaging {
     self.validationFailedHandler = validationFailed
     self.parsingAndValidationFailedHandler = parsingAndValidationFailed
     self.unexpectedErrorHandler = unexpectedError
+    self.structuredOutputInvalidHandler = structuredOutputInvalid
   }
 
   func unknownTool(_ context: ResponseMessagingUnknownToolContext) -> CallTool.Result {
@@ -206,6 +246,12 @@ private struct ClosureResponseMessaging: ResponseMessaging {
     _ context: ResponseMessagingUnexpectedErrorContext
   ) -> CallTool.Result {
     unexpectedErrorHandler(context)
+  }
+
+  func structuredOutputInvalid(
+    _ context: ResponseMessagingStructuredOutputInvalidContext
+  ) -> CallTool.Result {
+    structuredOutputInvalidHandler(context)
   }
 }
 
@@ -281,6 +327,18 @@ public struct ResponseMessagingParsingAndValidationFailedContext: Sendable {
     self.toolName = toolName
     self.parseIssues = parseIssues
     self.validationResult = validationResult
+  }
+}
+
+public struct ResponseMessagingStructuredOutputInvalidContext: Sendable {
+  /// The tool whose structured output failed validation.
+  public let toolName: String
+  /// The parse or validation issue that occurred.
+  public let issue: ParseAndValidateIssue
+
+  public init(toolName: String, issue: ParseAndValidateIssue) {
+    self.toolName = toolName
+    self.issue = issue
   }
 }
 

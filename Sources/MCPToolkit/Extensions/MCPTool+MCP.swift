@@ -50,7 +50,18 @@ extension MCPTool {
         .init(toolName: name, error: error)
       )
     }
+<<<<<<< HEAD
     return try await callToolResult(with: params)
+=======
+    let result = try await call(with: params)
+    if let structuredTool = self as? any MCPToolWithStructuredOutput {
+      return structuredTool.validateStructuredOutputResult(
+        result,
+        messaging: messaging
+      )
+    }
+    return result
+>>>>>>> 4bdff85 (Structured output support)
   }
 }
 
@@ -60,12 +71,20 @@ extension MCPTool {
   /// - Returns: A configured ``MCP/Tool`` populated with the tool's metadata and JSON Schema.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools
   public func toTool() -> Tool {
-    Tool(
+    let outputSchemaValue: MCP.Value?
+    if let structuredTool = self as? any MCPToolWithStructuredOutput {
+      outputSchemaValue = MCP.Value(schemaValue: structuredTool.outputSchemaValue)
+    } else {
+      outputSchemaValue = nil
+    }
+    return Tool(
       name: name,
+      title: nil,
       description: description,
       inputSchema: .init(schemaValue: parameters.schemaValue),
       annotations: annotations,
-      meta: meta?.mapValues { MCP.Value(value: $0) }
+      outputSchema: outputSchemaValue,
+      _meta: meta?.mapValues { MCP.Value(value: $0) }
     )
   }
 }
