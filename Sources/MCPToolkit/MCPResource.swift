@@ -60,6 +60,32 @@ public protocol MCPResource: Sendable {
   /// Optional MIME type hint for the primary content.
   var mimeType: String? { get }
 
+  /// Optional result-level metadata. Override to provide metadata with each resource read result.
+  ///
+  /// This metadata is included in the `ReadResource.Result` as `_meta` and can be used for:
+  /// - Caching hints for the client
+  /// - Last modified timestamps
+  /// - Version information
+  ///
+  /// ```swift
+  /// var resultMeta: [String: JSONValue]? {
+  ///   ["lastModified": "2024-01-15T10:30:00Z", "version": 2]
+  /// }
+  /// ```
+  var resultMeta: [String: JSONValue]? { get }
+
+  /// Optional extra fields for the result. Override to provide custom fields with each resource read result.
+  ///
+  /// These fields are included in the `ReadResource.Result` alongside standard fields and can be used
+  /// for custom protocol extensions or provider-specific data.
+  ///
+  /// ```swift
+  /// var resultExtraFields: [String: JSONValue]? {
+  ///   ["provider": "custom", "etag": "abc123"]
+  /// }
+  /// ```
+  var resultExtraFields: [String: JSONValue]? { get }
+
   /// The content provided by this resource, built using a declarative result builder.
   @ResourceContentBuilder
   var content: Content { get async throws }
@@ -78,6 +104,16 @@ extension MCPResource {
 
   /// Default implementation that emits no MIME type.
   public var mimeType: String? {
+    nil
+  }
+
+  /// Default implementation that emits no result-level metadata.
+  public var resultMeta: [String: JSONValue]? {
+    nil
+  }
+
+  /// Default implementation that emits no extra fields.
+  public var resultExtraFields: [String: JSONValue]? {
     nil
   }
 }

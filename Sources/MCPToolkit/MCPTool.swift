@@ -37,8 +37,34 @@ public protocol MCPTool: Sendable {
   var description: String? { get }
   /// Additional metadata that MCP clients may use when prioritising tools.
   var annotations: Tool.Annotations { get }
-  /// Arbitrary metadata, useful for OpenAI tooling.
+  /// Arbitrary metadata, useful for OpenAI tooling. This appears in `tools/list`.
   var meta: [String: JSONValue]? { get }
+
+  /// Optional result-level metadata. Override to provide metadata with each tool call result.
+  ///
+  /// This metadata is included in the `CallTool.Result` as `_meta` and can be used for:
+  /// - Caching hints for the client
+  /// - Cost or performance information
+  /// - Rate limiting details
+  ///
+  /// ```swift
+  /// var resultMeta: [String: JSONValue]? {
+  ///   ["cost": 0.01, "cached": true]
+  /// }
+  /// ```
+  var resultMeta: [String: JSONValue]? { get }
+
+  /// Optional extra fields for the result. Override to provide custom fields with each tool call result.
+  ///
+  /// These fields are included in the `CallTool.Result` alongside standard fields and can be used
+  /// for custom protocol extensions or provider-specific data.
+  ///
+  /// ```swift
+  /// var resultExtraFields: [String: JSONValue]? {
+  ///   ["provider": "custom", "requestId": "abc123"]
+  /// }
+  /// ```
+  var resultExtraFields: [String: JSONValue]? { get }
 
   /// The JSON Schema definition that is published through `tools/list`.
   @JSONSchemaBuilder
@@ -124,11 +150,17 @@ extension MCPTool {
   public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let contentItems = try await call(with: arguments) as Content
-      return CallTool.Result(content: contentItems.map { $0.toToolContent() })
+      return CallTool.Result(
+        content: contentItems.map { $0.toToolContent() },
+        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
+        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
+      )
     } catch let error {
       return CallTool.Result(
         content: error.content.map { $0.toToolContent() },
-        isError: true
+        isError: true,
+        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
+        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
       )
     }
   }
@@ -147,6 +179,16 @@ extension MCPTool {
 
   /// Default implementation that emits no metadata.
   public var meta: [String: JSONValue]? {
+    nil
+  }
+
+  /// Default implementation that emits no result-level metadata.
+  public var resultMeta: [String: JSONValue]? {
+    nil
+  }
+
+  /// Default implementation that emits no extra fields.
+  public var resultExtraFields: [String: JSONValue]? {
     nil
   }
 }

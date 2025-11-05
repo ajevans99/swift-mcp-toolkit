@@ -46,6 +46,8 @@ extension MCPResource {
   /// - Parameter uri: The URI being read (should match `self.uri`).
   /// - Returns: A `ReadResource.Result` containing the resource's content.
   /// - Throws: Rethrows any errors from the resource's `content` getter.
+  /// - Note: The `resultMeta` and `resultExtraFields` properties are available for when
+  ///         the MCP SDK adds support for metadata in `ReadResource.Result`.
   public func read(uri: String) async throws -> ReadResource.Result {
     let contents = try await self.content
     let resourceContents = contents.map { item in
@@ -56,6 +58,9 @@ extension MCPResource {
         return Resource.Content.blob(base64Data, uri: uri, mimeType: item.mimeType)
       }
     }
+    // Note: When ReadResource.Result supports _meta and extraFields, add:
+    // _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
+    // extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
     return ReadResource.Result(contents: resourceContents)
   }
 }
