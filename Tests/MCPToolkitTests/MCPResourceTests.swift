@@ -1,7 +1,6 @@
 import Foundation
+import MCPToolkit
 import Testing
-
-@testable import MCPToolkit
 
 struct SimpleTextResource: MCPResource {
   let uri = "text://simple"
@@ -70,7 +69,7 @@ struct MCPResourceTests {
   @Test("read() returns single content item")
   func readReturnsSingleContent() async throws {
     let resource = SimpleTextResource()
-    let result = try await resource.read()
+    let result = try await resource.read(uri: resource.uri)
 
     #expect(result.contents.count == 1)
 
@@ -82,7 +81,7 @@ struct MCPResourceTests {
   @Test("read() respects MIME types")
   func readRespectsMimeTypes() async throws {
     let resource = HTMLWidgetResource()
-    let result = try await resource.read()
+    let result = try await resource.read(uri: resource.uri)
 
     #expect(result.contents.count == 1)
 
@@ -94,7 +93,7 @@ struct MCPResourceTests {
   @Test("read() handles multiple content items")
   func readHandlesMultipleContent() async throws {
     let resource = MultiContentResource()
-    let result = try await resource.read()
+    let result = try await resource.read(uri: resource.uri)
 
     #expect(result.contents.count == 3)
 
@@ -113,12 +112,95 @@ struct MCPResourceTests {
   @Test("Group uses custom separator")
   func groupUsesCustomSeparator() async throws {
     let resource = CustomSeparatorResource()
-    let result = try await resource.read()
+    let result = try await resource.read(uri: resource.uri)
 
     #expect(result.contents.count == 1)
 
     let content = result.contents.first
     #expect(content?.text == "apple, banana, cherry")
+  }
+
+  @Test("read() handles binary blob content")
+  func readHandlesBinaryBlob() async throws {
+    struct BinaryResource: MCPResource {
+      let uri = "data://image"
+
+      var content: Content {
+        // A 1x1 red PNG pixel (base64 encoded)
+        let redPixel =
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="
+
+        ResourceContentItem.blob(redPixel, mimeType: "image/png")
+      }
+    }
+
+    let resource = BinaryResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 1)
+
+    let content = result.contents.first
+    #expect(content?.blob != nil)
+    #expect(content?.text == nil)
+    #expect(content?.mimeType == "image/png")
+    #expect(content?.uri == "data://image")
+
+    // Verify the blob can be decoded back to Data
+    if let blob = content?.blob, let data = Data(base64Encoded: blob) {
+      #expect(data.count > 0)
+    } else {
+      Issue.record("Failed to decode blob back to Data")
+    }
+  }
+
+  @Test("read() handles mixed text and blob content")
+  func readHandlesMixedContent() async throws {
+    struct MixedResource: MCPResource {
+      let uri = "mixed://content"
+
+      var content: Content {
+        ResourceGroup {
+          "# Document Header"
+          "This document contains an embedded image."
+        }
+        .mimeType("text/markdown")
+
+        // A 1x1 transparent PNG (base64 encoded)
+        ResourceContentItem.blob(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIW2NgAAIAAAUAAR4f7BQAAAAASUVORK5CYII=",
+          mimeType: "image/png"
+        )
+
+        ResourceGroup {
+          "## Footer"
+          "End of document."
+        }
+        .mimeType("text/markdown")
+      }
+    }
+
+    let resource = MixedResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 3)
+
+    // First item should be text
+    let first = result.contents[0]
+    #expect(first.text != nil)
+    #expect(first.blob == nil)
+    #expect(first.mimeType == "text/markdown")
+
+    // Second item should be blob
+    let second = result.contents[1]
+    #expect(second.text == nil)
+    #expect(second.blob != nil)
+    #expect(second.mimeType == "image/png")
+
+    // Third item should be text
+    let third = result.contents[2]
+    #expect(third.text != nil)
+    #expect(third.blob == nil)
+    #expect(third.mimeType == "text/markdown")
   }
 }
 

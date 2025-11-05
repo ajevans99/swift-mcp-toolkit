@@ -31,7 +31,7 @@ extension Server {
         throw MCPError.invalidRequest("Unknown resource URI: \(params.uri)")
       }
 
-      return try await resource.read()
+      return try await resource.read(uri: params.uri)
     }
   }
 }

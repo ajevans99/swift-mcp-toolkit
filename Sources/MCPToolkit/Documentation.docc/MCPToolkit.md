@@ -137,6 +137,43 @@ struct HTMLPageResource: MCPResource {
 }
 ```
 
+For binary content (images, PDFs, etc.), use `ResourceContentItem.blob()` with base64-encoded data:
+
+```swift
+struct ImageResource: MCPResource {
+  let uri = "data://images/logo.png"
+  let name: String? = "Company Logo"
+
+  var content: Content {
+    // Provide base64-encoded binary data
+    let base64PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."
+    ResourceContentItem.blob(base64PNG, mimeType: "image/png")
+  }
+}
+
+// Mix text and binary content in a single resource
+struct DocumentWithImagesResource: MCPResource {
+  let uri = "doc://report"
+
+  var content: Content {
+    Group {
+      "# Monthly Report"
+      "See the chart below."
+    }
+    .mimeType("text/markdown")
+
+    // Embed a chart image
+    ResourceContentItem.blob(chartImageBase64, mimeType: "image/png")
+
+    Group {
+      "## Conclusion"
+      "Data shows positive trends."
+    }
+    .mimeType("text/markdown")
+  }
+}
+```
+
 Register resources on your server:
 
 ```swift

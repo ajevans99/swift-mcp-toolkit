@@ -98,22 +98,65 @@ extension ContentBuilder where Item == ResourceContentItem {
 public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral,
   ExpressibleByStringInterpolation
 {
-  public let text: String
+  /// The type of content this item contains.
+  public enum ContentType: Sendable {
+    /// Text content.
+    case text(String)
+    /// Binary content encoded as a base64 string.
+    case blob(String)
+  }
+
+  public let content: ContentType
   public let mimeType: String?
 
+  /// Creates a text content item.
   public init(text: String, mimeType: String? = nil) {
-    self.text = text
+    self.content = .text(text)
+    self.mimeType = mimeType
+  }
+
+  /// Creates a binary content item from a base64-encoded string.
+  ///
+  /// - Parameters:
+  ///   - base64Blob: The binary data encoded as a base64 string.
+  ///   - mimeType: The MIME type of the binary content.
+  public init(base64Blob: String, mimeType: String) {
+    self.content = .blob(base64Blob)
     self.mimeType = mimeType
   }
 
   public init(stringLiteral value: String) {
-    self.text = value
+    self.content = .text(value)
     self.mimeType = nil
   }
 
   /// Sets the MIME type for this content item.
   public func mimeType(_ type: String) -> ResourceContentItem {
-    ResourceContentItem(text: text, mimeType: type)
+    ResourceContentItem(content: content, mimeType: type)
+  }
+
+  private init(content: ContentType, mimeType: String?) {
+    self.content = content
+    self.mimeType = mimeType
+  }
+}
+
+extension ResourceContentItem {
+  /// Creates a binary blob content item from a base64-encoded string.
+  ///
+  /// Common use case for images, PDFs, and other binary data:
+  ///
+  /// ```swift
+  /// let imageData = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+  /// let item = ResourceContentItem.blob(imageData, mimeType: "image/png")
+  /// ```
+  ///
+  /// - Parameters:
+  ///   - base64Data: The binary data encoded as a base64 string.
+  ///   - mimeType: The MIME type of the binary content.
+  /// - Returns: A new resource content item containing the binary blob.
+  public static func blob(_ base64Data: String, mimeType: String) -> ResourceContentItem {
+    ResourceContentItem(base64Blob: base64Data, mimeType: mimeType)
   }
 }
 

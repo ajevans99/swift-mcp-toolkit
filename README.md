@@ -287,6 +287,45 @@ struct HTMLPageResource: MCPResource {
 }
 ```
 
+### Binary Blobs
+
+Resources can provide binary content (images, PDFs, etc.) as base64-encoded strings:
+
+```swift
+struct ImageResource: MCPResource {
+  let uri = "data://images/logo.png"
+  let name: String? = "Company Logo"
+
+  var content: Content {
+    // Provide base64-encoded binary data
+    let base64PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."
+    ResourceContentItem.blob(base64PNG, mimeType: "image/png")
+  }
+}
+
+// Mix text and binary content
+struct DocumentWithImagesResource: MCPResource {
+  let uri = "doc://report"
+
+  var content: Content {
+    Group {
+      "# Monthly Report"
+      "See the chart below."
+    }
+    .mimeType("text/markdown")
+
+    // Embed a chart image
+    ResourceContentItem.blob(chartImageBase64, mimeType: "image/png")
+
+    Group {
+      "## Summary"
+      "Data shows positive trends."
+    }
+    .mimeType("text/markdown")
+  }
+}
+```
+
 ### Registering Resources
 
 Register resources with your MCP server just like tools:
@@ -300,7 +339,8 @@ let server = Server(
 
 await server.register(resources: [
   DocumentationResource(),
-  HTMLPageResource()
+  HTMLPageResource(),
+  ImageResource()
 ])
 ```
 
