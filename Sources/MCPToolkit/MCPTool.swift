@@ -74,6 +74,15 @@ public protocol MCPTool: Sendable {
   /// - Throws: Any Swift error. Use ``ToolError`` for custom error content.
   @ToolContentBuilder
   func call(with arguments: Parameters) async throws(ToolError) -> Content
+
+  /// This is called by the MCP server infrastructure and handles automatic error conversion.
+  ///
+  /// A default implementation is provided that bridges to ``call(with:)`` and wraps errors.
+  ///
+  /// - Parameter arguments: The decoded argument payload that satisfied ``parameters``.
+  /// - Returns: A structured result containing the tool's output.
+  /// - Throws: Can throw errors during tool execution, which are wrapped in the result.
+  func callToolResult(with arguments: Parameters) async throws -> CallTool.Result
 }
 
 /// An error type that tools can throw to provide custom error content.
@@ -112,7 +121,7 @@ public struct ToolError: Error, Sendable {
 
 extension MCPTool {
   /// This is called by the MCP server infrastructure and handles automatic error conversion.
-  func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
+  public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let contentItems = try await call(with: arguments) as Content
       return CallTool.Result(content: contentItems.map { $0.toToolContent() })
@@ -190,7 +199,7 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
   }
 
   /// Converts to the underlying MCP `Tool.Content` type.
-  fileprivate func toToolContent() -> Tool.Content {
+  func toToolContent() -> Tool.Content {
     content
   }
 }

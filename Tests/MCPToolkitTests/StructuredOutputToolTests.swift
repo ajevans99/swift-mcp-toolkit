@@ -21,16 +21,12 @@ private struct StructuredWeatherTool: MCPToolWithStructuredOutput {
   typealias Parameters = WeatherToolParameters
   typealias Output = WeatherToolOutput
 
-  func produceOutput(with arguments: Parameters) async throws -> Output {
+  func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
     Output(temperature: 22.5, conditions: "Partly cloudy", humidity: 65)
   }
 
-  func content(for output: Output) throws -> [Tool.Content] {
-    [
-      .text(
-        "Weather for location is \(output.temperature)C with \(output.conditions.lowercased())."
-      )
-    ]
+  func content(for output: Output) throws(ToolError) -> Content {
+    "Weather for location is \(output.temperature)C with \(output.conditions.lowercased())."
   }
 }
 
@@ -50,11 +46,11 @@ private struct InvalidStructuredOutputTool: MCPToolWithStructuredOutput {
   typealias Parameters = InvalidStructuredParameters
   typealias Output = InvalidStructuredOutput
 
-  func produceOutput(with arguments: Parameters) async throws -> Output {
+  func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
     Output(value: 1)
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
+  func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     CallTool.Result(
       content: [.text("bad structured output")],
       structuredContent: .string("not an object")
