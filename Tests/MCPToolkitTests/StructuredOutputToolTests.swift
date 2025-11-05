@@ -1,7 +1,5 @@
-import MCP
+import MCPToolkit
 import Testing
-
-@testable import MCPToolkit
 
 @Schemable
 struct WeatherToolParameters: Codable, Sendable {

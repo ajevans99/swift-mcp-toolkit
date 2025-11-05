@@ -1,10 +1,5 @@
-import JSONSchema
-import MCP
+import MCPToolkit
 import Testing
-
-@testable import MCPToolkit
-
-// Test tools defined at file scope to allow macro expansion
 
 @Schemable
 struct CachedToolParameters {

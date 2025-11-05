@@ -1,8 +1,6 @@
 import Foundation
-import Logging
+import MCPToolkit
 import Testing
-
-@testable import MCPToolkit
 
 struct MultiplicationTool: MCPTool {
   let name = "multiplication"
