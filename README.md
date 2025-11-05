@@ -188,6 +188,86 @@ For simple single-line errors, use the convenience initializer:
 throw ToolError("Value must be positive")
 ```
 
+<details>
+<summary><strong>Structured Output Tools</strong></summary>
+
+For tools that need to return both structured data and human-readable content, use `MCPToolWithStructuredOutput`. This is useful when clients need machine-readable data alongside text descriptions.
+
+```swift
+import MCPToolkit
+
+struct WeatherTool: MCPToolWithStructuredOutput {
+  let name = "get_weather"
+  let description = "Get current weather conditions"
+
+  @Schemable
+  struct Parameters {
+    let location: String
+    let units: String? = "celsius"
+  }
+
+  @Schemable
+  struct Output {
+    let temperature: Double
+    let conditions: String
+    let humidity: Int
+    let windSpeed: Double
+  }
+
+  func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
+    // Fetch weather data from an API
+    let data = try await weatherAPI.fetch(
+      location: arguments.location,
+      units: arguments.units ?? "celsius"
+    )
+
+    return Output(
+      temperature: data.temp,
+      conditions: data.description,
+      humidity: data.humidity,
+      windSpeed: data.windSpeed
+    )
+  }
+
+  func content(for output: Output) throws(ToolError) -> Content {
+    "🌡️ Temperature: \(output.temperature)°"
+    "☁️ Conditions: \(output.conditions)"
+    "💧 Humidity: \(output.humidity)%"
+    "💨 Wind Speed: \(output.windSpeed) m/s"
+  }
+}
+```
+
+The `content(for:)` method is optional. If you only need structured output without text content, you can omit it:
+
+```swift
+struct DataTool: MCPToolWithStructuredOutput {
+  let name = "get_data"
+  
+  @Schemable
+  struct Parameters {
+    let query: String
+  }
+  
+  @Schemable
+  struct Output {
+    let results: [Result]
+    let count: Int
+  }
+  
+  func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
+    let results = try await database.query(arguments.query)
+    return Output(results: results, count: results.count)
+  }
+  
+  // No content(for:) needed - purely structured output
+}
+```
+
+The structured output is automatically validated against your `Output` schema and included in the tool response.
+
+</details>
+
 ## Running the Example Server with MCP Inspector
 
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive development tool for MCP servers.
