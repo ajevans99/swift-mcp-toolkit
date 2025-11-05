@@ -31,9 +31,13 @@ The MCP specification standardises how AI assistants discover and invoke server-
        let useMetric: Bool
      }
 
-     func call(with arguments: Parameters) async throws -> CallTool.Result {
+     func call(with arguments: Parameters) async throws(ToolError) -> Content {
+       guard !arguments.city.isEmpty else {
+         throw ToolError("City name cannot be empty")
+       }
+       
        let summary = try await fetchWeather(for: arguments.city, metric: arguments.useMetric)
-       return .init(content: [.text(summary)])
+       return [summary]
      }
    }
    ```
@@ -64,6 +68,127 @@ The MCP specification standardises how AI assistants discover and invoke server-
 
 3. **Respond to Clients** – incoming `tools/call` requests are parsed, validated, and routed without additional glue code.
 
+### Error Handling
+
+Tools can throw errors that are automatically converted to error responses. For custom error content, throw a `ToolError`:
+
+```swift
+struct ValidatedTool: MCPTool {
+  let name = "validated"
+
+  @Schemable
+  struct Parameters {
+    let value: Int
+  }
+
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
+    guard arguments.value > 0 else {
+      throw ToolError {
+        "Invalid input: value must be positive"
+        "Received: \(arguments.value)"
+      }
+    }
+    
+    return ["Success! Value is \(arguments.value)"]
+  }
+}
+```
+
+### Resources
+
+MCP Resources let servers expose data that clients can read. Define resources using the `MCPResource` protocol and the `@ResourceContentBuilder`:
+
+```swift
+struct DocumentationResource: MCPResource {
+  let uri = "docs://api/overview"
+  let name: String? = "API Overview"
+  let description: String? = "Complete API documentation"
+  let mimeType: String? = "text/markdown"
+
+  var content: Content {
+    """
+    # API Documentation
+
+    Welcome to our API!
+    """
+  }
+}
+```
+
+For multiple content blocks with different MIME types, use `Group`:
+
+```swift
+struct HTMLPageResource: MCPResource {
+  let uri = "ui://widget/page.html"
+  let name: String? = "Widget Page"
+
+  var content: Content {
+    Group {
+      "<!DOCTYPE html>"
+      "<html><body>Hello!</body></html>"
+    }
+    .mimeType("text/html")
+
+    Group(separator: " ") {
+      ".widget { color: blue; }"
+    }
+    .mimeType("text/css")
+  }
+}
+```
+
+For binary content (images, PDFs, etc.), use `ResourceContentItem.blob()` with base64-encoded data:
+
+```swift
+struct ImageResource: MCPResource {
+  let uri = "data://images/logo.png"
+  let name: String? = "Company Logo"
+
+  var content: Content {
+    // Provide base64-encoded binary data
+    let base64PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."
+    ResourceContentItem.blob(base64PNG, mimeType: "image/png")
+  }
+}
+
+// Mix text and binary content in a single resource
+struct DocumentWithImagesResource: MCPResource {
+  let uri = "doc://report"
+
+  var content: Content {
+    Group {
+      "# Monthly Report"
+      "See the chart below."
+    }
+    .mimeType("text/markdown")
+
+    // Embed a chart image
+    ResourceContentItem.blob(chartImageBase64, mimeType: "image/png")
+
+    Group {
+      "## Conclusion"
+      "Data shows positive trends."
+    }
+    .mimeType("text/markdown")
+  }
+}
+```
+
+Register resources on your server:
+
+```swift
+let server = Server(
+  name: "Documentation Server",
+  version: "1.0.0",
+  capabilities: .init(resources: .init(listChanged: true))
+)
+
+await server.register(resources: [
+  DocumentationResource(),
+  HTMLPageResource()
+])
+```
+
 ## Topics
 
 ### Core APIs
@@ -71,7 +196,18 @@ The MCP specification standardises how AI assistants discover and invoke server-
 - `MCPTool`
 - `MCPTool/call(arguments:)`
 - `MCPTool/toTool()`
+- `ToolError`
+- `ToolContentItem`
+- `ToolContentBuilder`
 - `Server/register(tools:messaging:)`
-- ``ResponseMessaging``
-- ``DefaultResponseMessaging``
-- ``ResponseMessagingFactory``
+- `ResponseMessaging`
+- `DefaultResponseMessaging`
+- `ResponseMessagingFactory`
+
+### Resources
+
+- `MCPResource`
+- `MCPResource/content`
+- `ResourceContentItem`
+- `Group`
+- `Server/register(resources:)`

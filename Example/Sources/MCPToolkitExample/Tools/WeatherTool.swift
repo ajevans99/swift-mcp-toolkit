@@ -20,16 +20,12 @@ struct WeatherTool: MCPTool {
     let unit: Unit
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
-    let weather: String
-
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     switch arguments.unit {
     case .fahrenheit:
-      weather = "The weather in \(arguments.location) is 75°F and sunny."
+      "The weather in \(arguments.location) is 75°F and sunny."
     case .celsius:
-      weather = "The weather in \(arguments.location) is 24°C and sunny."
+      "The weather in \(arguments.location) is 24°C and sunny."
     }
-
-    return .init(content: [.text(weather)])
   }
 }

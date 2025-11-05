@@ -33,17 +33,13 @@ struct WeatherTool: MCPTool {
     let unit: Unit
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
-    let weather: String
-
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     switch arguments.unit {
     case .fahrenheit:
-      weather = "The weather in \(arguments.location) is 75°F and sunny."
+      "The weather in \(arguments.location) is 75°F and sunny."
     case .celsius:
-      weather = "The weather in \(arguments.location) is 24°C and sunny."
+      "The weather in \(arguments.location) is 24°C and sunny."
     }
-
-    return .init(content: [.text(weather)])
   }
 }
 ```
@@ -155,6 +151,43 @@ await server.register(
 
 If you are happy with the toolkit's defaults, simply omit the `messaging:` argument.
 
+### Error Handling
+
+The toolkit provides automatic error handling for tools. Any error thrown from `call(with:)` will be automatically converted to an error response with `isError: true`.
+
+For custom error messages with structured content, throw a `ToolError`:
+
+```swift
+struct ValidatedTool: MCPTool {
+  let name = "validated"
+
+  @Schemable
+  struct Parameters {
+    let value: Int
+  }
+
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
+    guard arguments.value > 0 else {
+      throw ToolError {
+        "Invalid input: value must be positive"
+        "Received: \(arguments.value)"
+        "Please provide a value greater than 0"
+      }
+    }
+
+    return ["Success! Value is \(arguments.value)"]
+  }
+}
+```
+
+The `ToolError` supports the same `@ToolContentBuilder` syntax as the `Content` return type, allowing you to provide rich, multi-line error messages.
+
+For simple single-line errors, use the convenience initializer:
+
+```swift
+throw ToolError("Value must be positive")
+```
+
 ## Running the Example Server with MCP Inspector
 
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive development tool for MCP servers.
@@ -196,6 +229,120 @@ npx @modelcontextprotocol/inspector@latest --server-url http://127.0.0.1:8080/mc
 ```
 
 ![MCP Inspector screenshot (HTTP mode)](./docs/images/mcp-inspector-http.png)
+
+## Resources
+
+MCP Resources allow servers to expose data that clients can read. This is useful for providing context like documentation, configuration files, or dynamic content.
+
+### Defining a Resource
+
+Conform to `MCPResource` and use the `@ResourceContentBuilder` to define your content declaratively:
+
+```swift
+import MCPToolkit
+
+struct DocumentationResource: MCPResource {
+  let uri = "docs://api/overview"
+  let name: String? = "API Overview"
+  let description: String? = "Complete API documentation"
+  let mimeType: String? = "text/markdown"
+
+  var content: Content {
+    """
+    # API Documentation
+
+    Welcome to our API!
+    """
+  }
+}
+```
+
+### Multiple Content Blocks
+
+Use `Group` to combine multiple strings with optional custom separators and MIME types:
+
+```swift
+struct HTMLPageResource: MCPResource {
+  let uri = "ui://widget/page.html"
+  let name: String? = "Widget Page"
+
+  var content: Content {
+    // HTML content with default newline separator
+    Group {
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head><title>My Widget</title></head>"
+      "<body><h1>Hello!</h1></body>"
+      "</html>"
+    }
+    .mimeType("text/html")
+
+    // CSS with custom separator
+    Group(separator: " ") {
+      ".widget { color: blue; }"
+      ".title { font-size: 20px; }"
+    }
+    .mimeType("text/css")
+  }
+}
+```
+
+### Binary Blobs
+
+Resources can provide binary content (images, PDFs, etc.) as base64-encoded strings:
+
+```swift
+struct ImageResource: MCPResource {
+  let uri = "data://images/logo.png"
+  let name: String? = "Company Logo"
+
+  var content: Content {
+    // Provide base64-encoded binary data
+    let base64PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."
+    ResourceContentItem.blob(base64PNG, mimeType: "image/png")
+  }
+}
+
+// Mix text and binary content
+struct DocumentWithImagesResource: MCPResource {
+  let uri = "doc://report"
+
+  var content: Content {
+    Group {
+      "# Monthly Report"
+      "See the chart below."
+    }
+    .mimeType("text/markdown")
+
+    // Embed a chart image
+    ResourceContentItem.blob(chartImageBase64, mimeType: "image/png")
+
+    Group {
+      "## Summary"
+      "Data shows positive trends."
+    }
+    .mimeType("text/markdown")
+  }
+}
+```
+
+### Registering Resources
+
+Register resources with your MCP server just like tools:
+
+```swift
+let server = Server(
+  name: "Documentation Server",
+  version: "1.0.0",
+  capabilities: .init(resources: .init(listChanged: true))
+)
+
+await server.register(resources: [
+  DocumentationResource(),
+  HTMLPageResource(),
+  ImageResource()
+])
+```
 
 ## Documentation
 

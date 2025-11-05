@@ -50,7 +50,7 @@ extension MCPTool {
         .init(toolName: name, error: error)
       )
     }
-    return try await call(with: params)
+    return try await callToolResult(with: params)
   }
 }
 
