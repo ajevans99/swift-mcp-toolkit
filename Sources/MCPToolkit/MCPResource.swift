@@ -85,39 +85,19 @@ extension MCPResource {
 // MARK: - Content Building
 
 /// A result builder for constructing resource content declaratively.
-@resultBuilder
-public enum ResourceContentBuilder {
-  public static func buildBlock(_ components: ResourceContentItem...) -> [ResourceContentItem] {
-    components
-  }
+public typealias ResourceContentBuilder = ContentBuilder<ResourceContentItem>
 
-  public static func buildExpression(_ item: ResourceContentItem) -> ResourceContentItem {
-    item
-  }
-
+extension ContentBuilder where Item == ResourceContentItem {
+  /// Builds an expression from a `ResourceGroup`.
   public static func buildExpression(_ group: ResourceGroup) -> ResourceContentItem {
     group.asContentItem()
-  }
-
-  public static func buildOptional(_ component: [ResourceContentItem]?) -> [ResourceContentItem] {
-    component ?? []
-  }
-
-  public static func buildEither(first component: [ResourceContentItem]) -> [ResourceContentItem] {
-    component
-  }
-
-  public static func buildEither(second component: [ResourceContentItem]) -> [ResourceContentItem] {
-    component
-  }
-
-  public static func buildArray(_ components: [[ResourceContentItem]]) -> [ResourceContentItem] {
-    components.flatMap { $0 }
   }
 }
 
 /// Represents a single content item with optional MIME type metadata.
-public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral {
+public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral,
+  ExpressibleByStringInterpolation
+{
   public let text: String
   public let mimeType: String?
 

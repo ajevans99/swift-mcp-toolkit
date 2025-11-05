@@ -148,7 +148,9 @@ extension MCPTool where Parameters: Schemable, Parameters.Schema.Output == Param
 ///
 /// This wrapper type provides a convenient way to construct tool content with string literals
 /// while avoiding retroactive conformance issues with the MCP SDK's `Tool.Content` type.
-public struct ToolContentItem: Sendable, ExpressibleByStringLiteral {
+public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
+  ExpressibleByStringInterpolation
+{
   private let content: Tool.Content
 
   /// Creates a text content item.
@@ -188,68 +190,24 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral {
 
 /// A result builder for constructing tool call result content declaratively.
 ///
-/// Use this builder to create `CallTool.Result` content in a more readable, declarative way:
+/// Use this builder to create tool content in a more readable, declarative way:
 ///
 /// ```swift
-/// func call(with arguments: Parameters) async throws -> CallTool.Result {
-///   CallTool.Result {
-///     "Hello, \(arguments.name)!"
+/// func call(with arguments: Parameters) async throws(ToolError) -> Content {
+///   "Hello, \(arguments.name)!"
 ///
-///     if arguments.verbose {
-///       "Additional details here"
-///     }
-///
-///     ToolContentItem(imageData: data, mimeType: "image/png")
+///   if arguments.verbose {
+///     "Additional details here"
 ///   }
+///
+///   ToolContentItem(imageData: data, mimeType: "image/png")
 /// }
 /// ```
-@resultBuilder
-public enum ToolContentBuilder {
-  public static func buildBlock(_ components: ToolContentItem...) -> [ToolContentItem] {
-    components
-  }
+public typealias ToolContentBuilder = ContentBuilder<ToolContentItem>
 
-  public static func buildBlock(_ components: [ToolContentItem]...) -> [ToolContentItem] {
-    components.flatMap { $0 }
-  }
-
-  public static func buildExpression(_ item: ToolContentItem) -> ToolContentItem {
-    item
-  }
-
-  public static func buildExpression(_ text: String) -> ToolContentItem {
-    ToolContentItem(text: text)
-  }
-
-  public static func buildExpression(_ items: [ToolContentItem]) -> [ToolContentItem] {
-    items
-  }
-
+extension ContentBuilder where Item == ToolContentItem {
+  /// Builds an expression from a `Group` of tool content items.
   public static func buildExpression(_ group: Group<ToolContentItem>) -> ToolContentItem {
     ToolContentItem(text: group.joinedText)
-  }
-
-  public static func buildOptional(_ component: [ToolContentItem]?) -> [ToolContentItem] {
-    component ?? []
-  }
-
-  public static func buildEither(first component: [ToolContentItem]) -> [ToolContentItem] {
-    component
-  }
-
-  public static func buildEither(second component: [ToolContentItem]) -> [ToolContentItem] {
-    component
-  }
-
-  public static func buildEither(first component: ToolContentItem) -> [ToolContentItem] {
-    [component]
-  }
-
-  public static func buildEither(second component: ToolContentItem) -> [ToolContentItem] {
-    [component]
-  }
-
-  public static func buildArray(_ components: [[ToolContentItem]]) -> [ToolContentItem] {
-    components.flatMap { $0 }
   }
 }
