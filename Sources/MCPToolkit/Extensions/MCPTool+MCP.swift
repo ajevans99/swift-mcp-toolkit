@@ -50,10 +50,7 @@ extension MCPTool {
         .init(toolName: name, error: error)
       )
     }
-<<<<<<< HEAD
-    return try await callToolResult(with: params)
-=======
-    let result = try await call(with: params)
+    let result = try await callToolResult(with: params)
     if let structuredTool = self as? any MCPToolWithStructuredOutput {
       return structuredTool.validateStructuredOutputResult(
         result,
@@ -61,7 +58,6 @@ extension MCPTool {
       )
     }
     return result
->>>>>>> 4bdff85 (Structured output support)
   }
 }
 
