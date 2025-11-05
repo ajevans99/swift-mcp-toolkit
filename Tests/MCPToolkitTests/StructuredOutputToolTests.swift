@@ -69,7 +69,7 @@ struct StructuredOutputToolTests {
     let tool = StructuredWeatherTool()
 
     let result = try await tool.call(arguments: [
-      "location": .string("Seattle"),
+      "location": .string("Seattle")
     ])
 
     #expect(result.isError != true)
@@ -90,7 +90,10 @@ struct StructuredOutputToolTests {
     let tool = StructuredWeatherTool().toTool()
 
     #expect(tool.outputSchema != nil)
-    #expect(tool.outputSchema?.objectValue?["required"]?.arrayValue?.contains(.string("temperature")) == true)
+    #expect(
+      tool.outputSchema?.objectValue?["required"]?.arrayValue?.contains(.string("temperature"))
+        == true
+    )
   }
 
   @Test("call(arguments:) reports structured output validation errors")
@@ -101,7 +104,7 @@ struct StructuredOutputToolTests {
 
     #expect(result.isError == true)
 
-    guard case let .text(message)? = result.content.first else {
+    guard case .text(let message)? = result.content.first else {
       Issue.record("Expected a textual error message")
       return
     }

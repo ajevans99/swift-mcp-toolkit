@@ -144,8 +144,7 @@ public enum ResponseMessagingFactory {
     public var parsingAndValidationFailed:
       Handler<ResponseMessagingParsingAndValidationFailedContext>?
     public var unexpectedError: Handler<ResponseMessagingUnexpectedErrorContext>?
-    public var structuredOutputInvalid:
-      Handler<ResponseMessagingStructuredOutputInvalidContext>?
+    public var structuredOutputInvalid: Handler<ResponseMessagingStructuredOutputInvalidContext>?
 
     public init() {}
   }
