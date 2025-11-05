@@ -197,6 +197,80 @@ npx @modelcontextprotocol/inspector@latest --server-url http://127.0.0.1:8080/mc
 
 ![MCP Inspector screenshot (HTTP mode)](./docs/images/mcp-inspector-http.png)
 
+## Resources
+
+MCP Resources allow servers to expose data that clients can read. This is useful for providing context like documentation, configuration files, or dynamic content.
+
+### Defining a Resource
+
+Conform to `MCPResource` and use the `@ResourceContentBuilder` to define your content declaratively:
+
+```swift
+import MCPToolkit
+
+struct DocumentationResource: MCPResource {
+  let uri = "docs://api/overview"
+  let name: String? = "API Overview"
+  let description: String? = "Complete API documentation"
+  let mimeType: String? = "text/markdown"
+
+  var content: Content {
+    """
+    # API Documentation
+    
+    Welcome to our API!
+    """
+  }
+}
+```
+
+### Multiple Content Blocks
+
+Use `Group` to combine multiple strings with optional custom separators and MIME types:
+
+```swift
+struct HTMLPageResource: MCPResource {
+  let uri = "ui://widget/page.html"
+  let name: String? = "Widget Page"
+
+  var content: Content {
+    // HTML content with default newline separator
+    Group {
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head><title>My Widget</title></head>"
+      "<body><h1>Hello!</h1></body>"
+      "</html>"
+    }
+    .mimeType("text/html")
+    
+    // CSS with custom separator
+    Group(separator: " ") {
+      ".widget { color: blue; }"
+      ".title { font-size: 20px; }"
+    }
+    .mimeType("text/css")
+  }
+}
+```
+
+### Registering Resources
+
+Register resources with your MCP server just like tools:
+
+```swift
+let server = Server(
+  name: "Documentation Server",
+  version: "1.0.0",
+  capabilities: .init(resources: .init(listChanged: true))
+)
+
+await server.register(resources: [
+  DocumentationResource(),
+  HTMLPageResource()
+])
+```
+
 ## Documentation
 
 Full API documentation is available on Swift Package Index [here](https://swiftpackageindex.com/ajevans99/swift-mcp-toolkit/main/documentation/mcptoolkit).

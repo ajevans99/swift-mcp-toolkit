@@ -64,6 +64,64 @@ The MCP specification standardises how AI assistants discover and invoke server-
 
 3. **Respond to Clients** – incoming `tools/call` requests are parsed, validated, and routed without additional glue code.
 
+### Resources
+
+MCP Resources let servers expose data that clients can read. Define resources using the `MCPResource` protocol and the `@ResourceContentBuilder`:
+
+```swift
+struct DocumentationResource: MCPResource {
+  let uri = "docs://api/overview"
+  let name: String? = "API Overview"
+  let description: String? = "Complete API documentation"
+  let mimeType: String? = "text/markdown"
+
+  var content: Content {
+    """
+    # API Documentation
+    
+    Welcome to our API!
+    """
+  }
+}
+```
+
+For multiple content blocks with different MIME types, use `Group`:
+
+```swift
+struct HTMLPageResource: MCPResource {
+  let uri = "ui://widget/page.html"
+  let name: String? = "Widget Page"
+
+  var content: Content {
+    Group {
+      "<!DOCTYPE html>"
+      "<html><body>Hello!</body></html>"
+    }
+    .mimeType("text/html")
+    
+    Group(separator: " ") {
+      ".widget { color: blue; }"
+    }
+    .mimeType("text/css")
+  }
+}
+```
+
+Register resources on your server:
+
+```swift
+let server = Server(
+  name: "Documentation Server",
+  version: "1.0.0",
+  capabilities: .init(resources: .init(listChanged: true))
+)
+
+await server.register(resources: [
+  DocumentationResource(),
+  HTMLPageResource()
+])
+```
+
 ## Topics
 
 ### Core APIs
@@ -75,3 +133,11 @@ The MCP specification standardises how AI assistants discover and invoke server-
 - ``ResponseMessaging``
 - ``DefaultResponseMessaging``
 - ``ResponseMessagingFactory``
+
+### Resources
+
+- `MCPResource`
+- `MCPResource/content`
+- `ResourceContentItem`
+- `Group`
+- `Server/register(resources:)`
