@@ -31,9 +31,13 @@ The MCP specification standardises how AI assistants discover and invoke server-
        let useMetric: Bool
      }
 
-     func call(with arguments: Parameters) async throws -> CallTool.Result {
+     func call(with arguments: Parameters) async throws -> Content {
+       guard !arguments.city.isEmpty else {
+         throw ToolError("City name cannot be empty")
+       }
+
        let summary = try await fetchWeather(for: arguments.city, metric: arguments.useMetric)
-       return .init(content: [.text(summary)])
+       return [summary]
      }
    }
    ```
@@ -64,6 +68,32 @@ The MCP specification standardises how AI assistants discover and invoke server-
 
 3. **Respond to Clients** – incoming `tools/call` requests are parsed, validated, and routed without additional glue code.
 
+### Error Handling
+
+Tools can throw errors that are automatically converted to error responses. For custom error content, throw a `ToolError`:
+
+```swift
+struct ValidatedTool: MCPTool {
+  let name = "validated"
+
+  @Schemable
+  struct Parameters {
+    let value: Int
+  }
+
+  func call(with arguments: Parameters) async throws -> Content {
+    guard arguments.value > 0 else {
+      throw ToolError {
+        "Invalid input: value must be positive"
+        "Received: \(arguments.value)"
+      }
+    }
+
+    return ["Success! Value is \(arguments.value)"]
+  }
+}
+```
+
 ### Resources
 
 MCP Resources let servers expose data that clients can read. Define resources using the `MCPResource` protocol and the `@ResourceContentBuilder`:
@@ -78,7 +108,7 @@ struct DocumentationResource: MCPResource {
   var content: Content {
     """
     # API Documentation
-    
+
     Welcome to our API!
     """
   }
@@ -98,7 +128,7 @@ struct HTMLPageResource: MCPResource {
       "<html><body>Hello!</body></html>"
     }
     .mimeType("text/html")
-    
+
     Group(separator: " ") {
       ".widget { color: blue; }"
     }
@@ -129,10 +159,13 @@ await server.register(resources: [
 - `MCPTool`
 - `MCPTool/call(arguments:)`
 - `MCPTool/toTool()`
+- `ToolError`
+- `ToolContentItem`
+- `ToolContentBuilder`
 - `Server/register(tools:messaging:)`
-- ``ResponseMessaging``
-- ``DefaultResponseMessaging``
-- ``ResponseMessagingFactory``
+- `ResponseMessaging`
+- `DefaultResponseMessaging`
+- `ResponseMessagingFactory`
 
 ### Resources
 

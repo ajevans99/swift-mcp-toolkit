@@ -1,5 +1,3 @@
-import Foundation
-
 /// A strongly typed interface for exposing resources in a Model Context Protocol server.
 ///
 /// Conforming types define the URI for their resource and provide content using a declarative
@@ -50,6 +48,9 @@ import Foundation
 /// }
 /// ```
 public protocol MCPResource: Sendable {
+  /// Type alias for the content produced by the result builder.
+  typealias Content = [ResourceContentItem]
+
   /// The unique URI that identifies this resource.
   var uri: String { get }
   /// An optional human-readable name for the resource.
@@ -94,7 +95,7 @@ public enum ResourceContentBuilder {
     item
   }
 
-  public static func buildExpression(_ group: Group) -> ResourceContentItem {
+  public static func buildExpression(_ group: ResourceGroup) -> ResourceContentItem {
     group.asContentItem()
   }
 
@@ -136,33 +137,10 @@ public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral {
   }
 }
 
-/// Groups multiple text strings into a single content item, optionally with a MIME type.
-///
-/// Use `Group` to combine multiple strings that should be treated as a single logical content
-/// block with the same MIME type.
-///
-/// ## Example
-///
-/// ```swift
-/// Group {
-///   "<!DOCTYPE html>"
-///   "<html>"
-///   "<body>Hello!</body>"
-///   "</html>"
-/// }
-/// .mimeType("text/html")
-/// ```
-///
-/// You can customize the separator used to join the lines:
-///
-/// ```swift
-/// Group(separator: " ") {
-///   "Hello"
-///   "World"
-/// }
-/// // Results in: "Hello World"
-/// ```
-public struct Group: Sendable {
+// MARK: - Group Extension for Resources
+
+/// Specialized version of Group that supports MIME types for resources.
+public struct ResourceGroup: Sendable {
   private let lines: [String]
   private let separator: String
   private let mimeType: String?
@@ -180,8 +158,8 @@ public struct Group: Sendable {
   }
 
   /// Sets the MIME type for this group of content.
-  public func mimeType(_ type: String) -> Group {
-    Group(lines: lines, separator: separator, mimeType: type)
+  public func mimeType(_ type: String) -> ResourceGroup {
+    ResourceGroup(lines: lines, separator: separator, mimeType: type)
   }
 
   fileprivate func asContentItem() -> ResourceContentItem {
@@ -191,30 +169,3 @@ public struct Group: Sendable {
     )
   }
 }
-
-/// A result builder for constructing arrays of strings.
-@resultBuilder
-public enum ArrayBuilder<Element> {
-  public static func buildBlock(_ components: Element...) -> [Element] {
-    components
-  }
-
-  public static func buildOptional(_ component: [Element]?) -> [Element] {
-    component ?? []
-  }
-
-  public static func buildEither(first component: [Element]) -> [Element] {
-    component
-  }
-
-  public static func buildEither(second component: [Element]) -> [Element] {
-    component
-  }
-
-  public static func buildArray(_ components: [[Element]]) -> [Element] {
-    components.flatMap { $0 }
-  }
-}
-
-/// Type alias for the content produced by the result builder.
-public typealias Content = [ResourceContentItem]

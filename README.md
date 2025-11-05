@@ -33,17 +33,13 @@ struct WeatherTool: MCPTool {
     let unit: Unit
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
-    let weather: String
-
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     switch arguments.unit {
     case .fahrenheit:
-      weather = "The weather in \(arguments.location) is 75°F and sunny."
+      "The weather in \(arguments.location) is 75°F and sunny."
     case .celsius:
-      weather = "The weather in \(arguments.location) is 24°C and sunny."
+      "The weather in \(arguments.location) is 24°C and sunny."
     }
-
-    return .init(content: [.text(weather)])
   }
 }
 ```
@@ -155,6 +151,43 @@ await server.register(
 
 If you are happy with the toolkit's defaults, simply omit the `messaging:` argument.
 
+### Error Handling
+
+The toolkit provides automatic error handling for tools. Any error thrown from `call(with:)` will be automatically converted to an error response with `isError: true`.
+
+For custom error messages with structured content, throw a `ToolError`:
+
+```swift
+struct ValidatedTool: MCPTool {
+  let name = "validated"
+
+  @Schemable
+  struct Parameters {
+    let value: Int
+  }
+
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
+    guard arguments.value > 0 else {
+      throw ToolError {
+        "Invalid input: value must be positive"
+        "Received: \(arguments.value)"
+        "Please provide a value greater than 0"
+      }
+    }
+
+    return ["Success! Value is \(arguments.value)"]
+  }
+}
+```
+
+The `ToolError` supports the same `@ToolContentBuilder` syntax as the `Content` return type, allowing you to provide rich, multi-line error messages.
+
+For simple single-line errors, use the convenience initializer:
+
+```swift
+throw ToolError("Value must be positive")
+```
+
 ## Running the Example Server with MCP Inspector
 
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive development tool for MCP servers.
@@ -217,7 +250,7 @@ struct DocumentationResource: MCPResource {
   var content: Content {
     """
     # API Documentation
-    
+
     Welcome to our API!
     """
   }
@@ -243,7 +276,7 @@ struct HTMLPageResource: MCPResource {
       "</html>"
     }
     .mimeType("text/html")
-    
+
     // CSS with custom separator
     Group(separator: " ") {
       ".widget { color: blue; }"

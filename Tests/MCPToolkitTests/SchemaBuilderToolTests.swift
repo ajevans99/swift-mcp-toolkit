@@ -29,9 +29,9 @@ struct AdditionTool: MCPTool {
     }
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     let sum = arguments.left + arguments.right
-    return .init(content: [.text("\(sum)")])
+    "\(sum)"
   }
 }
 

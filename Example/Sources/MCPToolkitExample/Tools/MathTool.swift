@@ -46,7 +46,7 @@ struct MathTool: MCPTool {
     .additionalProperties(false)
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     let result: Double
     switch arguments.0 {
     case .add: result = arguments.1 + arguments.2
@@ -54,10 +54,10 @@ struct MathTool: MCPTool {
     case .mul: result = arguments.1 * arguments.2
     case .div:
       guard arguments.2 != 0 else {
-        return .init(content: [.text("Division by zero.")], isError: true)
+        throw ToolError("Division by zero is not allowed")
       }
       result = arguments.1 / arguments.2
     }
-    return .init(content: [.text(String(result))])
+    return [ToolContentItem(text: String(result))]
   }
 }

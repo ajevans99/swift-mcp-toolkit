@@ -7,7 +7,7 @@ struct WidgetResource: MCPResource {
   let mimeType: String? = "text/html"
 
   var content: Content {
-    Group {
+    ResourceGroup {
       "<!DOCTYPE html>"
       "<html><body>"
       "<h1>Hello from Widget!</h1>"

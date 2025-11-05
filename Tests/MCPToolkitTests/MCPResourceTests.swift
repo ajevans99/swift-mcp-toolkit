@@ -14,12 +14,10 @@ struct SimpleTextResource: MCPResource {
 }
 
 struct HTMLWidgetResource: MCPResource {
-  let uri = "ui://widget/myWidget.html"
-  let name: String? = "My Widget"
-  let mimeType: String? = "text/html"
+  let uri = "ui://widget"
 
   var content: Content {
-    Group {
+    ResourceGroup {
       "<!DOCTYPE html>"
       "<html><body>Widget content</body></html>"
     }
@@ -31,12 +29,12 @@ struct MultiContentResource: MCPResource {
   let uri = "doc://multi"
 
   var content: Content {
-    Group {
+    ResourceGroup {
       "# Markdown Content"
     }
     .mimeType("text/markdown")
 
-    Group {
+    ResourceGroup {
       "<h1>HTML Content</h1>"
     }
     .mimeType("text/html")
@@ -49,7 +47,7 @@ struct CustomSeparatorResource: MCPResource {
   let uri = "text://custom-separator"
 
   var content: Content {
-    Group(separator: ", ") {
+    ResourceGroup(separator: ", ") {
       "apple"
       "banana"
       "cherry"

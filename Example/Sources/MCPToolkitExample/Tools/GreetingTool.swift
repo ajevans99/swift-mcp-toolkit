@@ -11,8 +11,7 @@ struct GreetingTool: MCPTool {
     let name: String
   }
 
-  func call(with arguments: Parameters) async throws -> CallTool.Result {
-    let greeting = "Hello, \(arguments.name)!"
-    return .init(content: [.text(greeting)])
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
+    "Hello, \(arguments.name)!"
   }
 }
