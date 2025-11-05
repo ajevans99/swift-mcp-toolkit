@@ -31,11 +31,11 @@ The MCP specification standardises how AI assistants discover and invoke server-
        let useMetric: Bool
      }
 
-     func call(with arguments: Parameters) async throws -> Content {
+     func call(with arguments: Parameters) async throws(ToolError) -> Content {
        guard !arguments.city.isEmpty else {
          throw ToolError("City name cannot be empty")
        }
-
+       
        let summary = try await fetchWeather(for: arguments.city, metric: arguments.useMetric)
        return [summary]
      }
@@ -81,14 +81,14 @@ struct ValidatedTool: MCPTool {
     let value: Int
   }
 
-  func call(with arguments: Parameters) async throws -> Content {
+  func call(with arguments: Parameters) async throws(ToolError) -> Content {
     guard arguments.value > 0 else {
       throw ToolError {
         "Invalid input: value must be positive"
         "Received: \(arguments.value)"
       }
     }
-
+    
     return ["Success! Value is \(arguments.value)"]
   }
 }
