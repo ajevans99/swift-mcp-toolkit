@@ -125,8 +125,8 @@ public typealias ResourceContentBuilder = ContentBuilder<ResourceContentItem>
 
 extension ContentBuilder where Item == ResourceContentItem {
   /// Builds an expression from a `ResourceGroup`.
-  public static func buildExpression(_ group: ResourceGroup) -> ResourceContentItem {
-    group.asContentItem()
+  public static func buildExpression(_ group: ResourceGroup) -> [ResourceContentItem] {
+    [group.asContentItem()]
   }
 }
 

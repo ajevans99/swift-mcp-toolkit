@@ -23,8 +23,8 @@ private struct StructuredWeatherTool: MCPToolWithStructuredOutput {
     Output(temperature: 22.5, conditions: "Partly cloudy", humidity: 65)
   }
 
-  func content(for output: Output) throws(ToolError) -> Content {
-    "Weather for location is \(output.temperature)C with \(output.conditions.lowercased())."
+  func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
+    "Weather for \(arguments.location) is \(output.temperature)C with \(output.conditions.lowercased())."
   }
 }
 
@@ -46,6 +46,10 @@ private struct InvalidStructuredOutputTool: MCPToolWithStructuredOutput {
 
   func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
     Output(value: 1)
+  }
+
+  func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
+    "Value: \(output.value)"
   }
 
   func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
@@ -74,7 +78,7 @@ struct StructuredOutputToolTests {
 
     #expect(
       result.content == [
-        .text("Weather for location is 22.5C with partly cloudy.")
+        .text("Weather for Seattle is 22.5C with partly cloudy.")
       ]
     )
   }

@@ -265,7 +265,7 @@ public typealias ToolContentBuilder = ContentBuilder<ToolContentItem>
 
 extension ContentBuilder where Item == ToolContentItem {
   /// Builds an expression from a `Group` of tool content items.
-  public static func buildExpression(_ group: Group<ToolContentItem>) -> ToolContentItem {
-    ToolContentItem(text: group.joinedText)
+  public static func buildExpression(_ group: Group<ToolContentItem>) -> [ToolContentItem] {
+    [ToolContentItem(text: group.joinedText)]
   }
 }

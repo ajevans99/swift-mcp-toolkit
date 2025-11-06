@@ -44,7 +44,8 @@
 ///     )
 ///   }
 ///
-///   func content(for output: Output) throws(ToolError) -> Content {
+///   func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
+///     "Weather for \(arguments.location):"
 ///     "Current temperature: \(output.temperature)°"
 ///     "Conditions: \(output.conditions)"
 ///     "Humidity: \(output.humidity)%"
@@ -97,17 +98,20 @@ public protocol MCPToolWithStructuredOutput: MCPTool {
   /// returns an empty array, so override this only if you want to include text content:
   ///
   /// ```swift
-  /// func content(for output: Output) throws(ToolError) -> Content {
+  /// func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
+  ///   "Weather for \(arguments.location):"
   ///   "Temperature: \(output.temperature)°"
   ///   "Conditions: \(output.conditions)"
   /// }
   /// ```
   ///
-  /// - Parameter output: The structured output produced by ``produceOutput(with:)``.
+  /// - Parameters:
+  ///   - output: The structured output produced by ``produceOutput(with:)``.
+  ///   - arguments: The original arguments from the tool call.
   /// - Returns: Content items to include in the response.
   /// - Throws: ``ToolError`` if content generation fails.
   @ToolContentBuilder
-  func content(for output: Output) throws(ToolError) -> Content
+  func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content
 
   /// Validates the structured output prior to returning it to the client.
   ///
@@ -130,17 +134,17 @@ public protocol MCPToolWithStructuredOutput: MCPTool {
 
 extension MCPToolWithStructuredOutput {
   /// Default implementation returns no content, yielding a purely structured response.
-  public func content(for output: Output) throws(ToolError) -> Content {
+  public func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
     []
   }
 
   /// Default implementation that produces content from the structured output.
   ///
-  /// This bridges ``produceOutput(with:)`` and ``content(for:)`` to satisfy the
+  /// This bridges ``produceOutput(with:)`` and ``content(for:arguments:)`` to satisfy the
   /// ``MCPTool`` protocol requirement. You don't normally need to override this.
   public func call(with arguments: Parameters) async throws(ToolError) -> Content {
     let output = try await produceOutput(with: arguments)
-    return try content(for: output)
+    return try content(for: output, arguments: arguments)
   }
 
   /// Internal method that packages structured output into a CallTool.Result.
@@ -154,7 +158,7 @@ extension MCPToolWithStructuredOutput {
   public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let output = try await produceOutput(with: arguments)
-      let contentItems = try content(for: output)
+      let contentItems = try content(for: output, arguments: arguments)
       return try CallTool.Result(
         content: contentItems.map { $0.toToolContent() },
         structuredContent: output,

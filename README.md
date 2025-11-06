@@ -229,7 +229,7 @@ struct WeatherTool: MCPToolWithStructuredOutput {
     )
   }
 
-  func content(for output: Output) throws(ToolError) -> Content {
+  func content(for output: Output, arguments: Parameters) throws(ToolError) -> Content {
     "🌡️ Temperature: \(output.temperature)°"
     "☁️ Conditions: \(output.conditions)"
     "💧 Humidity: \(output.humidity)%"
@@ -243,24 +243,24 @@ The `content(for:)` method is optional. If you only need structured output witho
 ```swift
 struct DataTool: MCPToolWithStructuredOutput {
   let name = "get_data"
-  
+
   @Schemable
   struct Parameters {
     let query: String
   }
-  
+
   @Schemable
   struct Output {
     let results: [Result]
     let count: Int
   }
-  
+
   func produceOutput(with arguments: Parameters) async throws(ToolError) -> Output {
     let results = try await database.query(arguments.query)
     return Output(results: results, count: results.count)
   }
-  
-  // No content(for:) needed - purely structured output
+
+  // No content(for:arguments:) needed - purely structured output
 }
 ```
 

@@ -1,4 +1,3 @@
-import Foundation
 import MCPToolkit
 import Testing
 

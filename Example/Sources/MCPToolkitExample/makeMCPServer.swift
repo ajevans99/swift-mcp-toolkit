@@ -11,6 +11,7 @@ func makeMCPServer() async -> Server {
     GreetingTool(),
     MathTool(),
     WeatherTool(),
+    StockQuoteTool(),
   ])
 
   return server
