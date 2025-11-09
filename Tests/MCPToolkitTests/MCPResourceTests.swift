@@ -202,6 +202,201 @@ struct MCPResourceTests {
     #expect(third.blob == nil)
     #expect(third.mimeType == "text/markdown")
   }
+
+  @Test("read() uses content item URI when provided")
+  func readUsesContentItemURI() async throws {
+    struct MultiURIResource: MCPResource {
+      let uri = "doc://main"
+
+      var content: Content {
+        ResourceGroup {
+          "Content from section 1"
+        }
+        .uri("doc://main/section1")
+
+        ResourceGroup {
+          "Content from section 2"
+        }
+        .uri("doc://main/section2")
+
+        "Content without specific URI"
+      }
+    }
+
+    let resource = MultiURIResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 3)
+
+    // First item should have its own URI
+    let first = result.contents[0]
+    #expect(first.uri == "doc://main/section1")
+
+    // Second item should have its own URI
+    let second = result.contents[1]
+    #expect(second.uri == "doc://main/section2")
+
+    // Third item should fall back to resource URI
+    let third = result.contents[2]
+    #expect(third.uri == "doc://main")
+  }
+
+  @Test("read() falls back to resource URI when content item URI is nil")
+  func readFallsBackToResourceURI() async throws {
+    struct FallbackResource: MCPResource {
+      let uri = "resource://fallback"
+
+      var content: Content {
+        "Plain text content without URI"
+
+        ResourceGroup {
+          "Group content without URI"
+        }
+        .mimeType("text/plain")
+      }
+    }
+
+    let resource = FallbackResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 2)
+
+    // Both items should use the resource URI as fallback
+    #expect(result.contents[0].uri == "resource://fallback")
+    #expect(result.contents[1].uri == "resource://fallback")
+  }
+
+  @Test("ResourceContentItem.uri() sets URI correctly")
+  func contentItemURIMethodSetsURI() {
+    let item = ResourceContentItem(text: "Test content")
+      .uri("custom://uri")
+
+    #expect(item.uri == "custom://uri")
+  }
+
+  @Test("ResourceContentItem init with URI parameter")
+  func contentItemInitWithURI() {
+    let textItem = ResourceContentItem(
+      text: "Test text",
+      mimeType: "text/plain",
+      uri: "text://custom"
+    )
+
+    #expect(textItem.uri == "text://custom")
+    #expect(textItem.mimeType == "text/plain")
+
+    let blobItem = ResourceContentItem(
+      base64Blob: "SGVsbG8=",
+      mimeType: "application/octet-stream",
+      uri: "blob://custom"
+    )
+
+    #expect(blobItem.uri == "blob://custom")
+    #expect(blobItem.mimeType == "application/octet-stream")
+  }
+
+  @Test("ResourceContentItem.blob() static method with URI")
+  func contentItemBlobStaticMethodWithURI() {
+    let item = ResourceContentItem.blob(
+      "SGVsbG8=",
+      mimeType: "application/octet-stream",
+      uri: "blob://static"
+    )
+
+    #expect(item.uri == "blob://static")
+    #expect(item.mimeType == "application/octet-stream")
+  }
+
+  @Test("ResourceGroup.uri() sets URI correctly")
+  func resourceGroupURIMethodSetsURI() async throws {
+    struct GroupURIResource: MCPResource {
+      let uri = "doc://parent"
+
+      var content: Content {
+        ResourceGroup {
+          "Line 1"
+          "Line 2"
+        }
+        .uri("doc://parent/child")
+        .mimeType("text/plain")
+      }
+    }
+
+    let resource = GroupURIResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 1)
+
+    let content = result.contents.first
+    #expect(content?.uri == "doc://parent/child")
+    #expect(content?.mimeType == "text/plain")
+    #expect(content?.text == "Line 1\nLine 2")
+  }
+
+  @Test("read() handles blob content with custom URI")
+  func readHandlesBlobContentWithCustomURI() async throws {
+    struct BlobWithURIResource: MCPResource {
+      let uri = "doc://images"
+
+      var content: Content {
+        ResourceContentItem.blob(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+          mimeType: "image/png",
+          uri: "doc://images/red-pixel.png"
+        )
+      }
+    }
+
+    let resource = BlobWithURIResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 1)
+
+    let content = result.contents.first
+    #expect(content?.uri == "doc://images/red-pixel.png")
+    #expect(content?.mimeType == "image/png")
+    #expect(content?.blob != nil)
+  }
+
+  @Test("read() handles mixed URIs with fallback")
+  func readHandlesMixedURIsWithFallback() async throws {
+    struct MixedURIResource: MCPResource {
+      let uri = "root://doc"
+
+      var content: Content {
+        // Has custom URI
+        ResourceGroup {
+          "Section A"
+        }
+        .uri("root://doc/a")
+
+        // No custom URI, should fallback
+        ResourceGroup {
+          "Section B"
+        }
+
+        // Has custom URI
+        ResourceContentItem.blob(
+          "SGVsbG8=",
+          mimeType: "application/octet-stream",
+          uri: "root://doc/attachment"
+        )
+
+        // No custom URI, should fallback
+        "Plain text"
+      }
+    }
+
+    let resource = MixedURIResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result.contents.count == 4)
+
+    #expect(result.contents[0].uri == "root://doc/a")
+    #expect(result.contents[1].uri == "root://doc")
+    #expect(result.contents[2].uri == "root://doc/attachment")
+    #expect(result.contents[3].uri == "root://doc")
+  }
 }
 
 @Suite("Resource server integration")
