@@ -249,7 +249,7 @@ public struct ResourceGroup: Sendable {
     return copy
   }
 
-  fileprivate func asContentItem() -> ResourceContentItem {
+  public func asContentItem() -> ResourceContentItem {
     ResourceContentItem(
       text: lines.joined(separator: separator),
       mimeType: mimeType,
