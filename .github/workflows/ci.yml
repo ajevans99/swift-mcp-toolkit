@@ -28,7 +28,7 @@ jobs:
             os: macos-15
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # Not working https://github.com/swift-actions/setup-swift/issues/739
       # - name: Set up Swift ${{ matrix.swift }}
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Cache SwiftPM
         uses: actions/cache@v5
