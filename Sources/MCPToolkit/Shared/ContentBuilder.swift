@@ -4,19 +4,14 @@
 /// using Swift's result builder syntax, supporting conditionals, loops, and optionals.
 @resultBuilder
 public enum ContentBuilder<Item> {
-  /// Builds a block of individual items.
-  public static func buildBlock(_ components: Item...) -> [Item] {
-    components
-  }
-
   /// Builds a block of arrays, flattening them into a single array.
   public static func buildBlock(_ components: [Item]...) -> [Item] {
     components.flatMap { $0 }
   }
 
   /// Builds an expression from a single item.
-  public static func buildExpression(_ item: Item) -> Item {
-    item
+  public static func buildExpression(_ item: Item) -> [Item] {
+    [item]
   }
 
   /// Builds an expression from an array of items.
@@ -27,6 +22,11 @@ public enum ContentBuilder<Item> {
   /// Builds an optional component.
   public static func buildOptional(_ component: [Item]?) -> [Item] {
     component ?? []
+  }
+
+  /// Builds a limited availability component.
+  public static func buildLimitedAvailability(_ component: [Item]) -> [Item] {
+    component
   }
 
   /// Builds the first branch of a conditional.

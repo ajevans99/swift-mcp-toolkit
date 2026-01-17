@@ -60,6 +60,32 @@ public protocol MCPResource: Sendable {
   /// Optional MIME type hint for the primary content.
   var mimeType: String? { get }
 
+  /// Optional result-level metadata. Override to provide metadata with each resource read result.
+  ///
+  /// This metadata is included in the `ReadResource.Result` as `_meta` and can be used for:
+  /// - Caching hints for the client
+  /// - Last modified timestamps
+  /// - Version information
+  ///
+  /// ```swift
+  /// var resultMeta: [String: JSONValue]? {
+  ///   ["lastModified": "2024-01-15T10:30:00Z", "version": 2]
+  /// }
+  /// ```
+  var resultMeta: [String: JSONValue]? { get }
+
+  /// Optional extra fields for the result. Override to provide custom fields with each resource read result.
+  ///
+  /// These fields are included in the `ReadResource.Result` alongside standard fields and can be used
+  /// for custom protocol extensions or provider-specific data.
+  ///
+  /// ```swift
+  /// var resultExtraFields: [String: JSONValue]? {
+  ///   ["provider": "custom", "etag": "abc123"]
+  /// }
+  /// ```
+  var resultExtraFields: [String: JSONValue]? { get }
+
   /// The content provided by this resource, built using a declarative result builder.
   @ResourceContentBuilder
   var content: Content { get async throws }
@@ -80,6 +106,16 @@ extension MCPResource {
   public var mimeType: String? {
     nil
   }
+
+  /// Default implementation that emits no result-level metadata.
+  public var resultMeta: [String: JSONValue]? {
+    nil
+  }
+
+  /// Default implementation that emits no extra fields.
+  public var resultExtraFields: [String: JSONValue]? {
+    nil
+  }
 }
 
 // MARK: - Content Building
@@ -89,8 +125,8 @@ public typealias ResourceContentBuilder = ContentBuilder<ResourceContentItem>
 
 extension ContentBuilder where Item == ResourceContentItem {
   /// Builds an expression from a `ResourceGroup`.
-  public static func buildExpression(_ group: ResourceGroup) -> ResourceContentItem {
-    group.asContentItem()
+  public static func buildExpression(_ group: ResourceGroup) -> [ResourceContentItem] {
+    [group.asContentItem()]
   }
 }
 
@@ -107,12 +143,14 @@ public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral,
   }
 
   public let content: ContentType
-  public let mimeType: String?
+  public var mimeType: String?
+  public var uri: String?
 
   /// Creates a text content item.
-  public init(text: String, mimeType: String? = nil) {
+  public init(text: String, mimeType: String? = nil, uri: String? = nil) {
     self.content = .text(text)
     self.mimeType = mimeType
+    self.uri = uri
   }
 
   /// Creates a binary content item from a base64-encoded string.
@@ -120,24 +158,37 @@ public struct ResourceContentItem: Sendable, ExpressibleByStringLiteral,
   /// - Parameters:
   ///   - base64Blob: The binary data encoded as a base64 string.
   ///   - mimeType: The MIME type of the binary content.
-  public init(base64Blob: String, mimeType: String) {
+  ///   - uri: Optional URI for this specific content item.
+  public init(base64Blob: String, mimeType: String, uri: String? = nil) {
     self.content = .blob(base64Blob)
     self.mimeType = mimeType
+    self.uri = uri
   }
 
   public init(stringLiteral value: String) {
     self.content = .text(value)
     self.mimeType = nil
+    self.uri = nil
   }
 
   /// Sets the MIME type for this content item.
   public func mimeType(_ type: String) -> ResourceContentItem {
-    ResourceContentItem(content: content, mimeType: type)
+    var copy = self
+    copy.mimeType = type
+    return copy
   }
 
-  private init(content: ContentType, mimeType: String?) {
+  /// Sets the URI for this content item.
+  public func uri(_ uri: String) -> ResourceContentItem {
+    var copy = self
+    copy.uri = uri
+    return copy
+  }
+
+  private init(content: ContentType, mimeType: String?, uri: String?) {
     self.content = content
     self.mimeType = mimeType
+    self.uri = uri
   }
 }
 
@@ -154,9 +205,12 @@ extension ResourceContentItem {
   /// - Parameters:
   ///   - base64Data: The binary data encoded as a base64 string.
   ///   - mimeType: The MIME type of the binary content.
+  ///   - uri: Optional URI for this specific content item.
   /// - Returns: A new resource content item containing the binary blob.
-  public static func blob(_ base64Data: String, mimeType: String) -> ResourceContentItem {
-    ResourceContentItem(base64Blob: base64Data, mimeType: mimeType)
+  public static func blob(_ base64Data: String, mimeType: String, uri: String? = nil)
+    -> ResourceContentItem
+  {
+    ResourceContentItem(base64Blob: base64Data, mimeType: mimeType, uri: uri)
   }
 }
 
@@ -166,7 +220,8 @@ extension ResourceContentItem {
 public struct ResourceGroup: Sendable {
   private let lines: [String]
   private let separator: String
-  private let mimeType: String?
+  private var mimeType: String?
+  private var uri: String?
 
   public init(separator: String = "\n", @ArrayBuilder<String> _ content: () -> [String]) {
     self.lines = content()
@@ -182,13 +237,23 @@ public struct ResourceGroup: Sendable {
 
   /// Sets the MIME type for this group of content.
   public func mimeType(_ type: String) -> ResourceGroup {
-    ResourceGroup(lines: lines, separator: separator, mimeType: type)
+    var copy = self
+    copy.mimeType = type
+    return copy
   }
 
-  fileprivate func asContentItem() -> ResourceContentItem {
+  /// Sets the URI for this group of content.
+  public func uri(_ uri: String) -> ResourceGroup {
+    var copy = self
+    copy.uri = uri
+    return copy
+  }
+
+  public func asContentItem() -> ResourceContentItem {
     ResourceContentItem(
       text: lines.joined(separator: separator),
-      mimeType: mimeType
+      mimeType: mimeType,
+      uri: uri
     )
   }
 }
