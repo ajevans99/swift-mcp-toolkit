@@ -44,7 +44,7 @@ struct MCPToolkitIntegrationTests {
       #expect(callResult.isError != true)
 
       switch callResult.content.first {
-      case .some(.text(let message)):
+      case .some(.text(text: let message, annotations: _, _meta: _)):
         #expect(message == "5")
       default:
         Issue.record("Expected textual tool response")

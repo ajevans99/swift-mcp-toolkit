@@ -37,6 +37,22 @@ public protocol MCPTool: Sendable {
   var description: String? { get }
   /// Additional metadata that MCP clients may use when prioritising tools.
   var annotations: Tool.Annotations { get }
+  /// Arbitrary metadata, useful for OpenAI tooling. This appears in `tools/list`.
+  var meta: [String: JSONValue]? { get }
+
+  /// Optional result-level metadata. Override to provide metadata with each tool call result.
+  ///
+  /// This metadata is included in the `CallTool.Result` as `_meta` and can be used for:
+  /// - Caching hints for the client
+  /// - Cost or performance information
+  /// - Rate limiting details
+  ///
+  /// ```swift
+  /// var resultMeta: [String: JSONValue]? {
+  ///   ["cost": 0.01, "cached": true]
+  /// }
+  /// ```
+  var resultMeta: [String: JSONValue]? { get }
 
   /// The JSON Schema definition that is published through `tools/list`.
   @JSONSchemaBuilder
@@ -72,6 +88,15 @@ public protocol MCPTool: Sendable {
   /// - Throws: Any Swift error. Use ``ToolError`` for custom error content.
   @ToolContentBuilder
   func call(with arguments: Parameters) async throws(ToolError) -> Content
+
+  /// This is called by the MCP server infrastructure and handles automatic error conversion.
+  ///
+  /// A default implementation is provided that bridges to ``call(with:)`` and wraps errors.
+  ///
+  /// - Parameter arguments: The decoded argument payload that satisfied ``parameters``.
+  /// - Returns: A structured result containing the tool's output.
+  /// - Throws: Can throw errors during tool execution, which are wrapped in the result.
+  func callToolResult(with arguments: Parameters) async throws -> CallTool.Result
 }
 
 /// An error type that tools can throw to provide custom error content.
@@ -110,14 +135,18 @@ public struct ToolError: Error, Sendable {
 
 extension MCPTool {
   /// This is called by the MCP server infrastructure and handles automatic error conversion.
-  func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
+  public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let contentItems = try await call(with: arguments) as Content
-      return CallTool.Result(content: contentItems.map { $0.toToolContent() })
+      return CallTool.Result(
+        content: contentItems.map { $0.toToolContent() },
+        _meta: resultMeta.metadata
+      )
     } catch let error {
       return CallTool.Result(
         content: error.content.map { $0.toToolContent() },
-        isError: true
+        isError: true,
+        _meta: resultMeta.metadata
       )
     }
   }
@@ -131,6 +160,16 @@ extension MCPTool {
 
   /// Default implementation that emits no annotations.
   public var annotations: Tool.Annotations {
+    nil
+  }
+
+  /// Default implementation that emits no metadata.
+  public var meta: [String: JSONValue]? {
+    nil
+  }
+
+  /// Default implementation that emits no result-level metadata.
+  public var resultMeta: [String: JSONValue]? {
     nil
   }
 }
@@ -155,22 +194,29 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
 
   /// Creates a text content item.
   public init(text: String) {
-    self.content = .text(text)
+    self.content = .text(text: text, annotations: nil, _meta: nil)
   }
 
   /// Creates an image content item.
   public init(imageData: String, mimeType: String, metadata: [String: String]? = nil) {
-    self.content = .image(data: imageData, mimeType: mimeType, metadata: metadata)
+    self.content = .image(
+      data: imageData,
+      mimeType: mimeType,
+      annotations: nil,
+      _meta: metadata.map { Metadata(additionalFields: $0.mapValues { .string($0) }) }
+    )
   }
 
   /// Creates an audio content item.
   public init(audioData: String, mimeType: String) {
-    self.content = .audio(data: audioData, mimeType: mimeType)
+    self.content = .audio(data: audioData, mimeType: mimeType, annotations: nil, _meta: nil)
   }
 
   /// Creates an embedded resource content item.
   public init(resourceUri: String, mimeType: String, text: String? = nil) {
-    self.content = .resource(uri: resourceUri, mimeType: mimeType, text: text)
+    self.content = .resource(
+      resource: .text(text ?? "", uri: resourceUri, mimeType: mimeType)
+    )
   }
 
   /// Creates content from the underlying MCP type.
@@ -179,12 +225,18 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
   }
 
   public init(stringLiteral value: String) {
-    self.content = .text(value)
+    self.content = .text(text: value, annotations: nil, _meta: nil)
   }
 
   /// Converts to the underlying MCP `Tool.Content` type.
-  fileprivate func toToolContent() -> Tool.Content {
+  func toToolContent() -> Tool.Content {
     content
+  }
+}
+
+extension Optional where Wrapped == [String: JSONValue] {
+  var metadata: Metadata? {
+    map { Metadata(additionalFields: $0.mapValues { MCP.Value(value: $0) }) }
   }
 }
 
@@ -207,7 +259,7 @@ public typealias ToolContentBuilder = ContentBuilder<ToolContentItem>
 
 extension ContentBuilder where Item == ToolContentItem {
   /// Builds an expression from a `Group` of tool content items.
-  public static func buildExpression(_ group: Group<ToolContentItem>) -> ToolContentItem {
-    ToolContentItem(text: group.joinedText)
+  public static func buildExpression(_ group: Group<ToolContentItem>) -> [ToolContentItem] {
+    [ToolContentItem(text: group.joinedText)]
   }
 }

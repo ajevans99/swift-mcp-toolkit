@@ -56,9 +56,13 @@ The MCP specification standardises how AI assistants discover and invoke server-
      messaging: ResponseMessagingFactory.defaultWithOverrides { overrides in
        overrides.toolThrew = { context in
          CallTool.Result(
-           content: [
-             .text("Weather machine failure: \(context.error.localizedDescription)")
-           ],
+            content: [
+              .text(
+                text: "Weather machine failure: \(context.error.localizedDescription)",
+                annotations: nil,
+                _meta: nil
+              )
+            ],
            isError: true
          )
        }

@@ -43,7 +43,7 @@ extension MCPResource {
 
   /// Reads the resource content and converts it to MCP's `ReadResource.Result` format.
   ///
-  /// - Parameter uri: The URI being read (should match `self.uri`).
+  /// - Parameter uri: The URI being read used for fallback if content items lack URIs.
   /// - Returns: A `ReadResource.Result` containing the resource's content.
   /// - Throws: Rethrows any errors from the resource's `content` getter.
   public func read(uri: String) async throws -> ReadResource.Result {
@@ -51,11 +51,11 @@ extension MCPResource {
     let resourceContents = contents.map { item in
       switch item.content {
       case .text(let text):
-        return Resource.Content.text(text, uri: uri, mimeType: item.mimeType)
+        return Resource.Content.text(text, uri: item.uri ?? uri, mimeType: item.mimeType)
       case .blob(let base64Data):
-        return Resource.Content.blob(base64Data, uri: uri, mimeType: item.mimeType)
+        return Resource.Content.blob(base64Data, uri: item.uri ?? uri, mimeType: item.mimeType)
       }
     }
-    return ReadResource.Result(contents: resourceContents)
+    return ReadResource.Result(contents: resourceContents, _meta: resultMeta.metadata)
   }
 }
