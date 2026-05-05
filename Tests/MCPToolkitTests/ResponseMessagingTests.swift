@@ -2,6 +2,38 @@ import Foundation
 import MCPToolkit
 import Testing
 
+private struct MinimalResponseMessaging: ResponseMessaging {
+  func unknownTool(_ context: ResponseMessagingUnknownToolContext) -> CallTool.Result {
+    DefaultResponseMessaging().unknownTool(context)
+  }
+
+  func missingArguments(_ context: ResponseMessagingMissingArgumentsContext) -> CallTool.Result {
+    DefaultResponseMessaging().missingArguments(context)
+  }
+
+  func toolThrew(_ context: ResponseMessagingToolErrorContext) -> CallTool.Result {
+    DefaultResponseMessaging().toolThrew(context)
+  }
+
+  func parsingFailed(_ context: ResponseMessagingParsingFailedContext) -> CallTool.Result {
+    DefaultResponseMessaging().parsingFailed(context)
+  }
+
+  func validationFailed(_ context: ResponseMessagingValidationFailedContext) -> CallTool.Result {
+    DefaultResponseMessaging().validationFailed(context)
+  }
+
+  func parsingAndValidationFailed(
+    _ context: ResponseMessagingParsingAndValidationFailedContext
+  ) -> CallTool.Result {
+    DefaultResponseMessaging().parsingAndValidationFailed(context)
+  }
+
+  func unexpectedError(_ context: ResponseMessagingUnexpectedErrorContext) -> CallTool.Result {
+    DefaultResponseMessaging().unexpectedError(context)
+  }
+}
+
 @Suite("Response messaging customization")
 struct ResponseMessagingTests {
   @Test("Default messaging mirrors legacy strings")
@@ -121,5 +153,17 @@ struct ResponseMessagingTests {
 
     await transport.finish()
     await server.stop()
+  }
+
+  @Test("Structured output messaging has a default implementation")
+  func structuredOutputMessagingDefaultKeepsCustomConformersSourceCompatible() {
+    let result = MinimalResponseMessaging().structuredOutputInvalid(
+      .init(
+        toolName: "structured",
+        issue: .parsingFailed([])
+      )
+    )
+
+    #expect(result.isError == true)
   }
 }

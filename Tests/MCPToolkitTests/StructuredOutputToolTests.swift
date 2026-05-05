@@ -55,7 +55,8 @@ private struct InvalidStructuredOutputTool: MCPToolWithStructuredOutput {
   func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     CallTool.Result(
       content: [.text(text: "bad structured output", annotations: nil, _meta: nil)],
-      structuredContent: .string("not an object")
+      structuredContent: .string("not an object"),
+      _meta: Metadata(additionalFields: ["cached": .bool(true)])
     )
   }
 }
@@ -105,6 +106,7 @@ struct StructuredOutputToolTests {
     ])
 
     #expect(result.isError == true)
+    #expect(result._meta?["cached"] == .bool(true))
 
     guard case .text(text: let message, annotations: _, _meta: _)? = result.content.first else {
       Issue.record("Expected a textual error message")

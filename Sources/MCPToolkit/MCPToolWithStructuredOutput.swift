@@ -186,9 +186,13 @@ extension MCPToolWithStructuredOutput {
       _ = try outputSchema.parseAndValidate(jsonValue)
       return result
     } catch let issue {
-      return messaging.structuredOutputInvalid(
+      var errorResult = messaging.structuredOutputInvalid(
         .init(toolName: name, issue: issue)
       )
+      if errorResult._meta == nil {
+        errorResult._meta = result._meta
+      }
+      return errorResult
     }
   }
 

@@ -18,6 +18,14 @@ public protocol ResponseMessaging: Sendable {
   ) -> CallTool.Result
 }
 
+extension ResponseMessaging {
+  public func structuredOutputInvalid(
+    _ context: ResponseMessagingStructuredOutputInvalidContext
+  ) -> CallTool.Result {
+    DefaultResponseMessaging().structuredOutputInvalid(context)
+  }
+}
+
 /// Provides the default set of toolkit responses
 public struct DefaultResponseMessaging: ResponseMessaging {
   public init() {}
