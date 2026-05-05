@@ -10,10 +10,14 @@ struct ResponseMessagingTests {
 
     let unknown = messaging.unknownTool(.init(requestedName: "mystery"))
     #expect(unknown.isError == true)
-    #expect(unknown.content == [.text("Unknown tool: mystery")])
+    #expect(unknown.content == [.text(text: "Unknown tool: mystery", annotations: nil, _meta: nil)])
 
     let missingArguments = messaging.missingArguments(.init(toolName: "addition"))
-    #expect(missingArguments.content == [.text("Missing arguments for tool addition")])
+    #expect(
+      missingArguments.content == [
+        .text(text: "Missing arguments for tool addition", annotations: nil, _meta: nil)
+      ]
+    )
   }
 
   @Test("call(arguments:) surfaces override for parsing failures")
@@ -23,7 +27,13 @@ struct ResponseMessagingTests {
         #expect(context.toolName == "addition")
         #expect(!context.issues.isEmpty)
         return .init(
-          content: [.text("Custom parse failure for \(context.toolName)")],
+          content: [
+            .text(
+              text: "Custom parse failure for \(context.toolName)",
+              annotations: nil,
+              _meta: nil
+            )
+          ],
           isError: true
         )
       }
@@ -31,7 +41,13 @@ struct ResponseMessagingTests {
         #expect(context.toolName == "addition")
         #expect(!context.parseIssues.isEmpty)
         return .init(
-          content: [.text("Custom parse failure for \(context.toolName)")],
+          content: [
+            .text(
+              text: "Custom parse failure for \(context.toolName)",
+              annotations: nil,
+              _meta: nil
+            )
+          ],
           isError: true
         )
       }
@@ -46,7 +62,11 @@ struct ResponseMessagingTests {
     )
 
     #expect(result.isError == true)
-    #expect(result.content == [.text("Custom parse failure for addition")])
+    #expect(
+      result.content == [
+        .text(text: "Custom parse failure for addition", annotations: nil, _meta: nil)
+      ]
+    )
   }
 
   @Test("Server.register uses custom messaging for toolkit errors")
@@ -58,10 +78,18 @@ struct ResponseMessagingTests {
     let messaging = ResponseMessagingFactory.defaultWithOverrides { overrides in
       overrides.missingArguments = { context in
         #expect(context.toolName == tool.name)
-        return .init(content: [.text("Provide args for \(context.toolName)!")], isError: true)
+        return .init(
+          content: [
+            .text(text: "Provide args for \(context.toolName)!", annotations: nil, _meta: nil)
+          ],
+          isError: true
+        )
       }
       overrides.toolThrew = { context in
-        return .init(content: [.text("Tool boom: \(context.error)")], isError: true)
+        return .init(
+          content: [.text(text: "Tool boom: \(context.error)", annotations: nil, _meta: nil)],
+          isError: true
+        )
       }
     }
 
@@ -82,7 +110,9 @@ struct ResponseMessagingTests {
       let result = try response.result.get()
 
       #expect(result.isError == true)
-      #expect(result.content == [.text("Provide args for addition!")])
+      #expect(
+        result.content == [.text(text: "Provide args for addition!", annotations: nil, _meta: nil)]
+      )
     } catch {
       await transport.finish()
       await server.stop()

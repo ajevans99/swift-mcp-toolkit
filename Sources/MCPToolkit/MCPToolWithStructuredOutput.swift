@@ -162,15 +162,13 @@ extension MCPToolWithStructuredOutput {
       return try CallTool.Result(
         content: contentItems.map { $0.toToolContent() },
         structuredContent: output,
-        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
-        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
+        _meta: resultMeta.metadata
       )
     } catch let error as ToolError {
       return CallTool.Result(
         content: error.content.map { $0.toToolContent() },
         isError: true,
-        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
-        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
+        _meta: resultMeta.metadata
       )
     }
   }

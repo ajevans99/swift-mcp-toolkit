@@ -36,7 +36,9 @@ struct VanillaWeatherTool {
     await server.withMethodHandler(CallTool.self) { params async in
       guard let arguments = params.arguments else {
         return .init(
-          content: [.text("Missing arguments for tool \(Self.name)")],
+          content: [
+            .text(text: "Missing arguments for tool \(Self.name)", annotations: nil, _meta: nil)
+          ],
           isError: true
         )
       }
@@ -46,7 +48,13 @@ struct VanillaWeatherTool {
         case .string(let unit)? = arguments["unit"]
       else {
         return .init(
-          content: [.text("Arguments for tool \(Self.name) failed validation.")],
+          content: [
+            .text(
+              text: "Arguments for tool \(Self.name) failed validation.",
+              annotations: nil,
+              _meta: nil
+            )
+          ],
           isError: true
         )
       }
@@ -59,7 +67,13 @@ struct VanillaWeatherTool {
         summary = "The weather in \(location) is 24°C and sunny."
       default:
         return .init(
-          content: [.text("Arguments for tool \(Self.name) failed validation.")],
+          content: [
+            .text(
+              text: "Arguments for tool \(Self.name) failed validation.",
+              annotations: nil,
+              _meta: nil
+            )
+          ],
           isError: true
         )
       }

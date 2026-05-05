@@ -54,18 +54,6 @@ public protocol MCPTool: Sendable {
   /// ```
   var resultMeta: [String: JSONValue]? { get }
 
-  /// Optional extra fields for the result. Override to provide custom fields with each tool call result.
-  ///
-  /// These fields are included in the `CallTool.Result` alongside standard fields and can be used
-  /// for custom protocol extensions or provider-specific data.
-  ///
-  /// ```swift
-  /// var resultExtraFields: [String: JSONValue]? {
-  ///   ["provider": "custom", "requestId": "abc123"]
-  /// }
-  /// ```
-  var resultExtraFields: [String: JSONValue]? { get }
-
   /// The JSON Schema definition that is published through `tools/list`.
   @JSONSchemaBuilder
   var parameters: Schema { get }
@@ -152,15 +140,13 @@ extension MCPTool {
       let contentItems = try await call(with: arguments) as Content
       return CallTool.Result(
         content: contentItems.map { $0.toToolContent() },
-        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
-        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
+        _meta: resultMeta.metadata
       )
     } catch let error {
       return CallTool.Result(
         content: error.content.map { $0.toToolContent() },
         isError: true,
-        _meta: resultMeta?.mapValues { MCP.Value(value: $0) },
-        extraFields: resultExtraFields?.mapValues { MCP.Value(value: $0) }
+        _meta: resultMeta.metadata
       )
     }
   }
@@ -186,11 +172,6 @@ extension MCPTool {
   public var resultMeta: [String: JSONValue]? {
     nil
   }
-
-  /// Default implementation that emits no extra fields.
-  public var resultExtraFields: [String: JSONValue]? {
-    nil
-  }
 }
 
 extension MCPTool where Parameters: Schemable, Parameters.Schema.Output == Parameters {
@@ -213,22 +194,29 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
 
   /// Creates a text content item.
   public init(text: String) {
-    self.content = .text(text)
+    self.content = .text(text: text, annotations: nil, _meta: nil)
   }
 
   /// Creates an image content item.
   public init(imageData: String, mimeType: String, metadata: [String: String]? = nil) {
-    self.content = .image(data: imageData, mimeType: mimeType, metadata: metadata)
+    self.content = .image(
+      data: imageData,
+      mimeType: mimeType,
+      annotations: nil,
+      _meta: metadata.map { Metadata(additionalFields: $0.mapValues { .string($0) }) }
+    )
   }
 
   /// Creates an audio content item.
   public init(audioData: String, mimeType: String) {
-    self.content = .audio(data: audioData, mimeType: mimeType)
+    self.content = .audio(data: audioData, mimeType: mimeType, annotations: nil, _meta: nil)
   }
 
   /// Creates an embedded resource content item.
   public init(resourceUri: String, mimeType: String, text: String? = nil) {
-    self.content = .resource(uri: resourceUri, mimeType: mimeType, text: text)
+    self.content = .resource(
+      resource: .text(text ?? "", uri: resourceUri, mimeType: mimeType)
+    )
   }
 
   /// Creates content from the underlying MCP type.
@@ -237,12 +225,18 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
   }
 
   public init(stringLiteral value: String) {
-    self.content = .text(value)
+    self.content = .text(text: value, annotations: nil, _meta: nil)
   }
 
   /// Converts to the underlying MCP `Tool.Content` type.
   func toToolContent() -> Tool.Content {
     content
+  }
+}
+
+extension Optional where Wrapped == [String: JSONValue] {
+  var metadata: Metadata? {
+    map { Metadata(additionalFields: $0.mapValues { MCP.Value(value: $0) }) }
   }
 }
 

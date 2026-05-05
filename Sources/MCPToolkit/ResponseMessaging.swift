@@ -24,7 +24,9 @@ public struct DefaultResponseMessaging: ResponseMessaging {
 
   public func unknownTool(_ context: ResponseMessagingUnknownToolContext) -> CallTool.Result {
     .init(
-      content: [.text("Unknown tool: \(context.requestedName)")],
+      content: [
+        .text(text: "Unknown tool: \(context.requestedName)", annotations: nil, _meta: nil)
+      ],
       isError: true
     )
   }
@@ -33,7 +35,9 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     _ context: ResponseMessagingMissingArgumentsContext
   ) -> CallTool.Result {
     .init(
-      content: [.text("Missing arguments for tool \(context.toolName)")],
+      content: [
+        .text(text: "Missing arguments for tool \(context.toolName)", annotations: nil, _meta: nil)
+      ],
       isError: true
     )
   }
@@ -41,7 +45,11 @@ public struct DefaultResponseMessaging: ResponseMessaging {
   public func toolThrew(_ context: ResponseMessagingToolErrorContext) -> CallTool.Result {
     .init(
       content: [
-        .text("Error occurred while calling tool \(context.toolName): \(context.error)")
+        .text(
+          text: "Error occurred while calling tool \(context.toolName): \(context.error)",
+          annotations: nil,
+          _meta: nil
+        )
       ],
       isError: true
     )
@@ -53,7 +61,11 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     let issues = context.issues.map(\.description).joined(separator: "; ")
     return .init(
       content: [
-        .text("Failed to parse arguments for tool \(context.toolName): \(issues)")
+        .text(
+          text: "Failed to parse arguments for tool \(context.toolName): \(issues)",
+          annotations: nil,
+          _meta: nil
+        )
       ],
       isError: true
     )
@@ -65,7 +77,10 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     .init(
       content: [
         .text(
-          "Arguments for tool \(context.toolName) failed validation: \(context.result.prettyJSONString())"
+          text:
+            "Arguments for tool \(context.toolName) failed validation: \(context.result.prettyJSONString())",
+          annotations: nil,
+          _meta: nil
         )
       ],
       isError: true
@@ -80,7 +95,10 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     return .init(
       content: [
         .text(
-          "Arguments for tool \(context.toolName) failed parsing and validation. Parsing errors: \(parseIssues). Validation errors: \(validation)"
+          text:
+            "Arguments for tool \(context.toolName) failed parsing and validation. Parsing errors: \(parseIssues). Validation errors: \(validation)",
+          annotations: nil,
+          _meta: nil
         )
       ],
       isError: true
@@ -93,7 +111,10 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     .init(
       content: [
         .text(
-          "Unexpected error occurred while parsing/validating arguments for tool \(context.toolName): \(context.error)"
+          text:
+            "Unexpected error occurred while parsing/validating arguments for tool \(context.toolName): \(context.error)",
+          annotations: nil,
+          _meta: nil
         )
       ],
       isError: true
@@ -124,7 +145,7 @@ public struct DefaultResponseMessaging: ResponseMessaging {
     }
 
     return .init(
-      content: [.text(message)],
+      content: [.text(text: message, annotations: nil, _meta: nil)],
       isError: true
     )
   }

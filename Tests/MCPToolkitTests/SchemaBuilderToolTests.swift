@@ -43,7 +43,7 @@ struct MCPToolkitUnitTests {
     ])
 
     #expect(result.isError != true)
-    #expect(result.content == [.text("42")])
+    #expect(result.content == [.text(text: "42", annotations: nil, _meta: nil)])
   }
 
   @Test("call(arguments:) reports schema violations instead of throwing")
@@ -56,7 +56,7 @@ struct MCPToolkitUnitTests {
     #expect(result.isError == true)
 
     switch result.content.first {
-    case .some(.text(let message)):
+    case .some(.text(text: let message, annotations: _, _meta: _)):
       #expect(
         message.contains("Arguments for tool addition failed parsing and validation.")
       )

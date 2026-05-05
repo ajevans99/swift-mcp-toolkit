@@ -54,7 +54,7 @@ private struct InvalidStructuredOutputTool: MCPToolWithStructuredOutput {
 
   func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     CallTool.Result(
-      content: [.text("bad structured output")],
+      content: [.text(text: "bad structured output", annotations: nil, _meta: nil)],
       structuredContent: .string("not an object")
     )
   }
@@ -78,7 +78,11 @@ struct StructuredOutputToolTests {
 
     #expect(
       result.content == [
-        .text("Weather for Seattle is 22.5C with partly cloudy.")
+        .text(
+          text: "Weather for Seattle is 22.5C with partly cloudy.",
+          annotations: nil,
+          _meta: nil
+        )
       ]
     )
   }
@@ -102,7 +106,7 @@ struct StructuredOutputToolTests {
 
     #expect(result.isError == true)
 
-    guard case .text(let message)? = result.content.first else {
+    guard case .text(text: let message, annotations: _, _meta: _)? = result.content.first else {
       Issue.record("Expected a textual error message")
       return
     }

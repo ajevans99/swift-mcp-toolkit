@@ -107,7 +107,7 @@ struct SchemableToolTests {
     ])
 
     #expect(result.isError != true)
-    #expect(result.content == [.text("42")])
+    #expect(result.content == [.text(text: "42", annotations: nil, _meta: nil)])
   }
 
   @Test("call(arguments:) reports validation errors for @Schemable")
@@ -120,7 +120,7 @@ struct SchemableToolTests {
     #expect(result.isError == true)
 
     switch result.content.first {
-    case .some(.text(let message)):
+    case .some(.text(text: let message, annotations: _, _meta: _)):
       #expect(
         message.contains("Arguments for tool multiplication failed parsing and validation.")
       )
@@ -145,7 +145,7 @@ struct SchemableToolTests {
     ])
 
     #expect(result.isError != true)
-    #expect(result.content == [.text("Hello, World!")])
+    #expect(result.content == [.text(text: "Hello, World!", annotations: nil, _meta: nil)])
   }
 
   @Test("call(with:) method works with Content return type")
@@ -156,7 +156,7 @@ struct SchemableToolTests {
     ])
 
     #expect(result.isError != true)
-    #expect(result.content == [.text("Hello, Alice!!!")])
+    #expect(result.content == [.text(text: "Hello, Alice!!!", annotations: nil, _meta: nil)])
   }
 
   @Test("ToolError provides custom error content")
@@ -167,15 +167,19 @@ struct SchemableToolTests {
 
     #expect(errorResult.isError == true)
     #expect(errorResult.content.count == 2)
-    #expect(errorResult.content[0] == .text("Something went wrong"))
-    #expect(errorResult.content[1] == .text("Please check your input"))
+    #expect(
+      errorResult.content[0] == .text(text: "Something went wrong", annotations: nil, _meta: nil)
+    )
+    #expect(
+      errorResult.content[1] == .text(text: "Please check your input", annotations: nil, _meta: nil)
+    )
 
     let successResult = try await ToolErrorTool().call(arguments: [
       "shouldError": .bool(false)
     ])
 
     #expect(successResult.isError != true)
-    #expect(successResult.content == [.text("Success")])
+    #expect(successResult.content == [.text(text: "Success", annotations: nil, _meta: nil)])
   }
 
   @Test("Content builder works with multiple items")
@@ -186,7 +190,7 @@ struct SchemableToolTests {
 
     #expect(result1.isError != true)
     #expect(result1.content.count == 1)
-    #expect(result1.content[0] == .text("Line 1"))
+    #expect(result1.content[0] == .text(text: "Line 1", annotations: nil, _meta: nil))
 
     let result2 = try await MultiLineContentTool().call(arguments: [
       "lines": .int(2)
@@ -194,8 +198,8 @@ struct SchemableToolTests {
 
     #expect(result2.isError != true)
     #expect(result2.content.count == 2)
-    #expect(result2.content[0] == .text("Line 1"))
-    #expect(result2.content[1] == .text("Line 2"))
+    #expect(result2.content[0] == .text(text: "Line 1", annotations: nil, _meta: nil))
+    #expect(result2.content[1] == .text(text: "Line 2", annotations: nil, _meta: nil))
 
     let result3 = try await MultiLineContentTool().call(arguments: [
       "lines": .int(3)
@@ -203,8 +207,8 @@ struct SchemableToolTests {
 
     #expect(result3.isError != true)
     #expect(result3.content.count == 3)
-    #expect(result3.content[0] == .text("Line 1"))
-    #expect(result3.content[1] == .text("Line 2"))
-    #expect(result3.content[2] == .text("Line 3"))
+    #expect(result3.content[0] == .text(text: "Line 1", annotations: nil, _meta: nil))
+    #expect(result3.content[1] == .text(text: "Line 2", annotations: nil, _meta: nil))
+    #expect(result3.content[2] == .text(text: "Line 3", annotations: nil, _meta: nil))
   }
 }

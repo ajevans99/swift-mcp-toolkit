@@ -25,20 +25,6 @@ struct CustomToolParameters {
   let input: String
 }
 
-struct CustomTool: MCPTool {
-  let name = "custom_tool"
-
-  typealias Parameters = CustomToolParameters
-
-  var resultExtraFields: [String: JSONValue]? {
-    ["requestId": "req-123", "provider": "custom"]
-  }
-
-  func call(with arguments: Parameters) async throws(ToolError) -> Content {
-    ["Result: \(arguments.input)"]
-  }
-}
-
 @Schemable
 struct SimpleToolParameters {
   let input: String
@@ -101,7 +87,7 @@ struct ErrorTool: MCPTool {
   }
 }
 
-@Suite("Result metadata and extra fields")
+@Suite("Result metadata")
 struct ResultMetadataTests {
 
   @Test("Tool result includes _meta when provided")
@@ -114,23 +100,12 @@ struct ResultMetadataTests {
     #expect(result._meta?["ttl"] == .int(3600))
   }
 
-  @Test("Tool result includes extraFields when provided")
-  func testToolResultExtraFields() async throws {
-    let tool = CustomTool()
-    let result = try await tool.callToolResult(with: CustomToolParameters(input: "test"))
-
-    #expect(result.extraFields != nil)
-    #expect(result.extraFields?["requestId"] == .string("req-123"))
-    #expect(result.extraFields?["provider"] == .string("custom"))
-  }
-
   @Test("Tool without metadata returns nil fields")
   func testToolWithoutMetadata() async throws {
     let tool = SimpleTool()
     let result = try await tool.callToolResult(with: SimpleToolParameters(input: "test"))
 
     #expect(result._meta == nil)
-    #expect(result.extraFields == nil)
   }
 
   @Test("Structured output tool includes metadata")

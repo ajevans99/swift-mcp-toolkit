@@ -54,6 +54,18 @@ struct CustomSeparatorResource: MCPResource {
   }
 }
 
+struct MetadataResource: MCPResource {
+  let uri = "text://metadata"
+
+  var resultMeta: [String: JSONValue]? {
+    ["version": 2, "cached": true]
+  }
+
+  var content: Content {
+    "Content with metadata"
+  }
+}
+
 @Suite("MCPResource")
 struct MCPResourceTests {
   @Test("toResource() generates correct metadata")
@@ -76,6 +88,15 @@ struct MCPResourceTests {
     let textContent = result.contents.first
     #expect(textContent?.text == "Hello, world!")
     #expect(textContent?.uri == "text://simple")
+  }
+
+  @Test("read() includes resource metadata")
+  func readIncludesResourceMetadata() async throws {
+    let resource = MetadataResource()
+    let result = try await resource.read(uri: resource.uri)
+
+    #expect(result._meta?["version"] == .int(2))
+    #expect(result._meta?["cached"] == .bool(true))
   }
 
   @Test("read() respects MIME types")

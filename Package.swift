@@ -18,9 +18,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/ajevans99/swift-json-schema.git", from: "0.9.0"),
-    // Fork with MCP spec updates.
-    .package(url: "https://github.com/ajevans99/swift-sdk.git", branch: "spec-update"),
-    // .package(name: "swift-sdk", path: "../swift-sdk"),
+    .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.0"),
   ],
   targets: [
     .target(
