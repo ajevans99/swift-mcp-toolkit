@@ -42,7 +42,7 @@ jobs:
 
       - name: Check if PR has a specific label
         id: check_label
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           result-encoding: string
           script: |
@@ -90,7 +90,7 @@ jobs:
       - name: Comment with patch info
         if: >
           steps.check_changes.outcome == 'failure'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const body = [
