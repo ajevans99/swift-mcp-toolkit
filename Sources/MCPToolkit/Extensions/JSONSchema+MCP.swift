@@ -1,3 +1,5 @@
+import OrderedCollections
+
 extension JSONValue {
   init(value: MCP.Value) {
     switch value {
@@ -14,7 +16,8 @@ extension JSONValue {
     case .array(let a):
       self = .array(a.map { JSONValue(value: $0) })
     case .object(let o):
-      self = .object(o.mapValues { JSONValue(value: $0) })
+      self = .object(
+        OrderedDictionary(uniqueKeysWithValues: o.map { ($0.key, JSONValue(value: $0.value)) }))
     case .data(let mimeType, let data):
       self = .object([
         "mimeType": mimeType.map { .string($0) } ?? .null,

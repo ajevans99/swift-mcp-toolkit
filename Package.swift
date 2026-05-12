@@ -17,7 +17,8 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/ajevans99/swift-json-schema.git", from: "0.9.0"),
+    .package(url: "https://github.com/ajevans99/swift-json-schema.git", from: "0.13.0"),
+    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
     .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.0"),
   ],
   targets: [
@@ -26,6 +27,7 @@ let package = Package(
       dependencies: [
         .product(name: "JSONSchema", package: "swift-json-schema"),
         .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "MCP", package: "swift-sdk"),
       ]
     ),

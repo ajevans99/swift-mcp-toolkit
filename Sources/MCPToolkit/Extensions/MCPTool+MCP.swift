@@ -1,6 +1,7 @@
 import JSONSchema
 import JSONSchemaBuilder
 import MCP
+import OrderedCollections
 
 extension MCPTool {
   /// Converts raw MCP argument values into the strongly typed ``MCPTool/Parameters`` payload.
@@ -24,7 +25,8 @@ extension MCPTool {
     arguments: [String: MCP.Value],
     messaging: M = DefaultResponseMessaging()
   ) async throws -> CallTool.Result {
-    let object = arguments.mapValues { JSONValue(value: $0) }
+    let object = OrderedDictionary(
+      uniqueKeysWithValues: arguments.map { ($0.key, JSONValue(value: $0.value)) })
     let params: Parameters
     do {
       params = try parameters.parseAndValidate(.object(object))

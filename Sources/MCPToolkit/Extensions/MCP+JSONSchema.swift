@@ -1,3 +1,5 @@
+import OrderedCollections
+
 extension MCP.Value {
   init(value: JSONValue) {
     switch value {
@@ -14,7 +16,8 @@ extension MCP.Value {
     case .array(let a):
       self = .array(a.map { MCP.Value(value: $0) })
     case .object(let o):
-      self = .object(o.mapValues { MCP.Value(value: $0) })
+      self = .object(
+        Dictionary(uniqueKeysWithValues: o.map { ($0.key, MCP.Value(value: $0.value)) }))
     }
   }
 }
@@ -25,7 +28,8 @@ extension MCP.Value {
     case .boolean(let bool):
       self = .bool(bool)
     case .object(let dict):
-      self = .object(dict.mapValues { MCP.Value(value: $0) })
+      self = .object(
+        Dictionary(uniqueKeysWithValues: dict.map { ($0.key, MCP.Value(value: $0.value)) }))
     }
   }
 }
