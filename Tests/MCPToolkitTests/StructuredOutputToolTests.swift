@@ -90,7 +90,7 @@ struct StructuredOutputToolTests {
 
   @Test("toTool includes output schema")
   func toolIncludesOutputSchema() throws {
-    let tool = StructuredWeatherTool().toTool()
+    let tool = try StructuredWeatherTool().toTool()
 
     #expect(tool.outputSchema != nil)
     #expect(

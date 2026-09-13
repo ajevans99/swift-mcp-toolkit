@@ -131,7 +131,7 @@ struct SchemableToolTests {
 
   @Test("toTool() generates correct schema from @Schemable")
   func toToolProducesValidSchema() throws {
-    let tool = MultiplicationTool().toTool()
+    let tool = try MultiplicationTool().toTool()
 
     #expect(tool.name == "multiplication")
     #expect(tool.description == "Multiply two integers and return the product.")
