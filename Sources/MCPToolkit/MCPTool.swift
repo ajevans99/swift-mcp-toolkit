@@ -95,7 +95,8 @@ public protocol MCPTool: Sendable {
   ///
   /// - Parameter arguments: The decoded argument payload that satisfied ``parameters``.
   /// - Returns: A structured result containing the tool's output.
-  /// - Throws: Can throw errors during tool execution, which are wrapped in the result.
+  /// - Throws: Result construction errors, including unrepresentable numeric metadata.
+  ///   ``ToolError`` from tool execution is wrapped in an error result.
   func callToolResult(with arguments: Parameters) async throws -> CallTool.Result
 }
 
@@ -138,12 +139,12 @@ extension MCPTool {
   public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let contentItems = try await call(with: arguments) as Content
-      return CallTool.Result(
+      return try CallTool.Result(
         content: contentItems.map { $0.toToolContent() },
         _meta: resultMeta.metadata
       )
-    } catch let error {
-      return CallTool.Result(
+    } catch let error as ToolError {
+      return try CallTool.Result(
         content: error.content.map { $0.toToolContent() },
         isError: true,
         _meta: resultMeta.metadata
@@ -236,7 +237,9 @@ public struct ToolContentItem: Sendable, ExpressibleByStringLiteral,
 
 extension Optional where Wrapped == [String: JSONValue] {
   var metadata: Metadata? {
-    map { Metadata(additionalFields: $0.mapValues { MCP.Value(value: $0) }) }
+    get throws {
+      try map { try Metadata(additionalFields: $0.mapValues { try MCP.Value(value: $0) }) }
+    }
   }
 }
 

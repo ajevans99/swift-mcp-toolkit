@@ -19,7 +19,7 @@ extension Server {
     messaging: M = DefaultResponseMessaging()
   ) async {
     self.withMethodHandler(ListTools.self) { _ in
-      .init(tools: tools.map { $0.toTool() })
+      try .init(tools: tools.map { try $0.toTool() })
     }
 
     self.withMethodHandler(CallTool.self) { params async in

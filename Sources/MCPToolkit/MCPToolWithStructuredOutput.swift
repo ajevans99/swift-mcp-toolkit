@@ -155,6 +155,8 @@ extension MCPToolWithStructuredOutput {
   ///
   /// You can override this if you need complete control over result generation,
   /// but this is rarely necessary.
+  ///
+  /// - Throws: Output encoding errors or unrepresentable numeric result metadata.
   public func callToolResult(with arguments: Parameters) async throws -> CallTool.Result {
     do {
       let output = try await produceOutput(with: arguments)
@@ -165,7 +167,7 @@ extension MCPToolWithStructuredOutput {
         _meta: resultMeta.metadata
       )
     } catch let error as ToolError {
-      return CallTool.Result(
+      return try CallTool.Result(
         content: error.content.map { $0.toToolContent() },
         isError: true,
         _meta: resultMeta.metadata
@@ -181,13 +183,16 @@ extension MCPToolWithStructuredOutput {
       return result
     }
 
-    let jsonValue = JSONValue(value: structuredContent)
     do {
+      let jsonValue = try JSONValue(value: structuredContent)
       _ = try outputSchema.parseAndValidate(jsonValue)
       return result
     } catch let issue {
       var errorResult = messaging.structuredOutputInvalid(
-        .init(toolName: name, issue: issue)
+        .init(
+          toolName: name,
+          issue: (issue as? ParseAndValidateIssue) ?? .decodingFailed(issue)
+        )
       )
       if errorResult._meta == nil {
         errorResult._meta = result._meta

@@ -19,16 +19,17 @@ extension MCPTool {
   ///   - messaging: The response messaging provider that should format any failures. Defaults to
   ///     ``DefaultResponseMessaging`` to preserve the toolkit's existing behaviour.
   /// - Returns: Either a successful tool result or an error response describing validation issues.
-  /// - Throws: Rethrows errors produced by ``MCPTool/call(with:)``.
+  /// - Throws: Rethrows errors from result construction, including numeric metadata conversion.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#calling-tools
   public func call<M: ResponseMessaging>(
     arguments: [String: MCP.Value],
     messaging: M = DefaultResponseMessaging()
   ) async throws -> CallTool.Result {
-    let object = OrderedDictionary(
-      uniqueKeysWithValues: arguments.map { ($0.key, JSONValue(value: $0.value)) })
     let params: Parameters
     do {
+      let object = try OrderedDictionary(
+        uniqueKeysWithValues: arguments.map { ($0.key, try JSONValue(value: $0.value)) }
+      )
       params = try parameters.parseAndValidate(.object(object))
     } catch ParseAndValidateIssue.parsingFailed(let parseIssues) {
       return messaging.parsingFailed(
@@ -67,15 +68,17 @@ extension MCPTool {
   /// Creates the `swift-sdk` representation of the tool for `tools/list` responses.
   ///
   /// - Returns: A configured ``MCP/Tool`` populated with the tool's metadata and JSON Schema.
+  /// - Throws: A ``JSONNumberLiteral/ConversionError`` if schema or metadata numbers cannot
+  ///   be represented by MCP without changing their decimal value.
   /// - SeeAlso: https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools
-  public func toTool() -> Tool {
+  public func toTool() throws -> Tool {
     let outputSchemaValue: MCP.Value?
     if let structuredTool = self as? any MCPToolWithStructuredOutput {
-      outputSchemaValue = MCP.Value(schemaValue: structuredTool.outputSchemaValue)
+      outputSchemaValue = try MCP.Value(schemaValue: structuredTool.outputSchemaValue)
     } else {
       outputSchemaValue = nil
     }
-    return Tool(
+    return try Tool(
       name: name,
       title: nil,
       description: description,

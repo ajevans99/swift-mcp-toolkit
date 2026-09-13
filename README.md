@@ -6,6 +6,27 @@
 
 A toolkit built on top of the [official Swift SDK for Model Context Protocol server and clients](https://github.com/modelcontextprotocol/swift-sdk) that makes it easy to define strongly-typed tools.
 
+## JSON Schema 0.14 Compatibility
+
+The toolkit requires `swift-json-schema` 0.14.0 or later. Its lossless JSON numbers can
+represent values beyond MCP's `Int` and `Double` cases, so conversion is checked:
+
+- Mathematical integers that fit `Int` use `.int`, including decimal or exponent spellings
+  such as `1.0` and `1e2`. Negative zero is preserved as `.double(-0.0)`.
+- Other numbers use `.double` only when the finite double's decimal representation,
+  reconstructed with `JSONNumberLiteral`, equals the original mathematical value.
+  Ordinary values such as `0.1` remain supported; this is a decimal round-trip policy,
+  not a claim that every decimal is exactly representable in binary floating point.
+- Numbers that would lose decimal precision, overflow, or underflow to zero throw
+  `JSONNumberLiteral.ConversionError`; no values are clamped, replaced with null, or stringified.
+  Incoming MCP doubles that are NaN or infinite are rejected without trapping.
+
+**Migration:** Direct calls to `tool.toTool()` now require `try`. Server registration remains
+nonthrowing; unrepresentable input/output schemas or tool metadata fail the `tools/list` request.
+Result metadata conversion errors propagate from tool calls and resource reads through the
+existing server error handling. Invalid argument numbers use `ResponseMessaging.unexpectedError`;
+invalid structured output numbers use `structuredOutputInvalid` with a decoding issue.
+
 ## Quick Start
 
 ### Step 1: Define a Tool
